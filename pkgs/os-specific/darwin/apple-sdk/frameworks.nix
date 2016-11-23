@@ -80,7 +80,7 @@ with frameworks; with libs; {
   PreferencePanes         = [];
   PubSub                  = [];
   Python                  = [ ApplicationServices ];
-  QTKit                   = [ CoreMediaIO CoreMedia MediaToolbox QuickTime VideoToolbox ];
+  QTKit                   = [ CoreMediaIO CoreMedia MediaToolbox QuickTime VideoToolbox Cocoa ];
   QuickLook               = [ ApplicationServices CF ];
   QuickTime               = [ ApplicationServices AudioUnit Carbon CoreAudio CoreServices OpenGL QuartzCore ];
   Ruby                    = [];
