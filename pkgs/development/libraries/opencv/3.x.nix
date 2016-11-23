@@ -14,7 +14,8 @@
 , enableFfmpeg ? false, ffmpeg
 , enableGStreamer ? false, gst_all_1
 , enableEigen ? false, eigen
-, enableCuda ? false, cudatoolkit, gcc49
+, enableCuda ? false, cudatoolkit, gcc49,
+OpenCL, QTKit, AVFoundation, QuartzCore, AppKit
 }:
 
 let
@@ -76,6 +77,7 @@ stdenv.mkDerivation rec {
     ++ lib.optionals enableGStreamer (with gst_all_1; [ gstreamer gst-plugins-base ])
     ++ lib.optional enableEigen eigen
     ++ lib.optional enableCuda [ cudatoolkit gcc49 ]
+    ++ lib.optional stdenv.isDarwin [ OpenCL QTKit AVFoundation QuartzCore AppKit ]
     ;
 
   propagatedBuildInputs = lib.optional enablePython pythonPackages.numpy;
