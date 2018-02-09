@@ -2,17 +2,17 @@
 
 stdenv.mkDerivation rec {
   name = "kexec-tools-${version}";
-  version = "2.0.12";
+  version = "2.0.16";
 
   src = fetchurl {
     urls = [
       "mirror://kernel/linux/utils/kernel/kexec/${name}.tar.xz"
       "http://horms.net/projects/kexec/kexec-tools/${name}.tar.xz"
     ];
-    sha256 = "03cj7w2l5fqn72xfhl4q6z0zbziwkp9bfn0gs7gaf9i44jv6gkhl";
+    sha256 = "043hasx5b9zk7r7dzx24z5wybg74dpmh0nyns6nrnb3mmm8k642v";
   };
 
-  hardeningDisable = [ "format" ];
+  hardeningDisable = [ "format" "pic" "relro" ];
 
   buildInputs = [ zlib ];
 
@@ -20,6 +20,5 @@ stdenv.mkDerivation rec {
     homepage = http://horms.net/projects/kexec/kexec-tools;
     description = "Tools related to the kexec Linux feature";
     platforms = platforms.linux;
-    maintainers = with maintainers; [ nckx ];
   };
 }

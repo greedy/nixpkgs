@@ -5,11 +5,11 @@
 
 stdenv.mkDerivation rec {
   name = "pktgen-${version}";
-  version = "3.0.13";
+  version = "3.4.0";
 
   src = fetchurl {
     url = "http://dpdk.org/browse/apps/pktgen-dpdk/snapshot/pktgen-${version}.tar.gz";
-    sha256 = "64629b454ed8dc036d5e9bb30b3ae84a0bab0142b651c72da85ab1454e9ae0d6";
+    sha256 = "0fcyb56d4mkvchi5i8s3m210f5c3xa8zbjb08ranpa1a2k1kzfg5";
   };
 
   nativeBuildInputs = stdenv.lib.optionals withGtk [ pkgconfig ];
@@ -24,14 +24,16 @@ stdenv.mkDerivation rec {
 
   NIX_CFLAGS_COMPILE = [ "-march=core2" ];
 
+  patches = [ ./Makefile.patch ];
+
   postPatch = ''
     substituteInPlace lib/lua/src/luaconf.h --replace /usr/local $out
-    substituteInPlace lib/common/wr_lscpu.h --replace /usr/bin/lscpu ${utillinux}/bin/lscpu
+    substituteInPlace lib/common/lscpu.h --replace /usr/bin/lscpu ${utillinux}/bin/lscpu
   '';
 
   installPhase = ''
     install -d $out/bin
-    install -m 0755 app/app/${RTE_TARGET}/app/pktgen $out/bin
+    install -m 0755 app/${RTE_TARGET}/pktgen $out/bin
     install -d $out/lib/lua/5.3
     install -m 0644 Pktgen.lua $out/lib/lua/5.3
   '';

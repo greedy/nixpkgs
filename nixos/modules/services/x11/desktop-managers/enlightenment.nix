@@ -20,7 +20,6 @@ in
 
     services.xserver.desktopManager.enlightenment.enable = mkOption {
       default = false;
-      example = true;
       description = "Enable the Enlightenment desktop environment.";
     };
 
@@ -48,7 +47,7 @@ in
         export GTK_DATA_PREFIX=${config.system.path}
         # find theme engines
         export GTK_PATH=${config.system.path}/lib/gtk-3.0:${config.system.path}/lib/gtk-2.0
-        export XDG_MENU_PREFIX=enlightenment
+        export XDG_MENU_PREFIX=e-
 
         export GST_PLUGIN_PATH="${GST_PLUGIN_PATH}"
 
@@ -62,10 +61,10 @@ in
       '';
     }];
 
-    security.setuidPrograms = [ "e_freqset" ];
+    security.wrappers = (import (builtins.toPath "${e.enlightenment}/e-wrappers.nix")).security.wrappers;
 
     environment.etc = singleton
-      { source = "${pkgs.xkeyboard_config}/etc/X11/xkb";
+      { source = xcfg.xkbDir;
         target = "X11/xkb";
       };
 

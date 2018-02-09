@@ -1,12 +1,14 @@
-{ stdenv, fetchurl }:
+{ stdenv, fetchurl, openssl }:
 
 stdenv.mkDerivation rec {
-  name = "iperf-3.1.3";
+  name = "iperf-3.3";
 
   src = fetchurl {
     url = "http://downloads.es.net/pub/iperf/${name}.tar.gz";
-    sha256 = "1gwmhm29zlp5grrpglmqj7vgx19s6xy33hk6hpbn8jnpn5lxpn30";
+    sha256 = "1n442bjkm1dvzmcj8z1i99yrmba489yz3f5v27ybymhh4mqn4nbg";
   };
+
+  buildInputs = [ openssl ];
 
   postInstall = ''
     ln -s iperf3 $out/bin/iperf

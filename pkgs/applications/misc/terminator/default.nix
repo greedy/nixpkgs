@@ -1,19 +1,31 @@
-{ stdenv, fetchurl, pythonPackages, keybinder, vte, gettext, intltool }:
+{ stdenv, fetchurl, pythonPackages, keybinder, vte, gettext, intltool, file, gtk3, gobjectIntrospection, cairo
+, wrapGAppsHook, gnome3
+}:
 
 pythonPackages.buildPythonApplication rec {
   name = "terminator-${version}";
-  version = "0.98";
-  
+  version = "1.91";
+
   src = fetchurl {
-    url = "https://launchpad.net/terminator/trunk/${version}/+download/${name}.tar.gz";
-    sha256 = "1h965z06dsfk38byyhnsrscd9r91qm92ggwgjrh7xminzsgqqv8a";
+    url = "https://launchpad.net/terminator/gtk3/${version}/+download/${name}.tar.gz";
+    sha256 = "95f76e3c0253956d19ceab2f8da709a496f1b9cf9b1c5b8d3cd0b6da3cc7be69";
   };
-  
-  propagatedBuildInputs = with pythonPackages; [ pygtk notify keybinder vte gettext intltool ];
 
-  #setupPyBuildFlags = [ "--without-icon-cache" ];
+  nativeBuildInputs = [ file intltool wrapGAppsHook ];
+  buildInputs = [ gtk3 gnome3.vte gobjectIntrospection cairo ];
 
-  doCheck = false;
+  pythonPath = with pythonPackages; [
+    pygobject3 vte keybinder notify gettext psutil
+    pycairo
+  ];
+
+  postPatch = ''
+    patchShebangs .
+  '';
+
+  checkPhase = ''
+    ./run_tests
+  '';
 
   meta = with stdenv.lib; {
     description = "Terminal emulator with support for tiling and tabs";
@@ -23,9 +35,9 @@ pythonPackages.buildPythonApplication rec {
       quadkonsole, etc. in that the main focus is arranging terminals in grids
       (tabs is the most common default method, which Terminator also supports).
     '';
-    homepage = http://gnometerminator.blogspot.no/p/introduction.html;
+    homepage = https://gnometerminator.blogspot.no/p/introduction.html;
     license = licenses.gpl2;
-    maintainers = [ maintainers.bjornfor ];
+    maintainers = with maintainers; [ bjornfor globin ];
     platforms = platforms.linux;
   };
 }

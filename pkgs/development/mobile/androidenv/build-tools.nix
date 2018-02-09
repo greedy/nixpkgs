@@ -1,16 +1,16 @@
 {stdenv, stdenv_32bit, fetchurl, unzip, zlib_32bit, ncurses_32bit, file, zlib, ncurses}:
 
 stdenv.mkDerivation rec {
-  version = "24.0.2";
+  version = "26.0.1";
   name = "android-build-tools-r${version}";
   src = if (stdenv.system == "i686-linux" || stdenv.system == "x86_64-linux")
     then fetchurl {
       url = "https://dl.google.com/android/repository/build-tools_r${version}-linux.zip";
-      sha256 = "15bxk03m1r1i74idydgqsrz1k7qczi8f9sj4kl8vvbw9l6w2jklj";
+      sha256 = "1sp0ir1d88ffw0gz78zlbvnxalz02fsaxwdcvjfynanylwjpyqf8";
     }
     else if stdenv.system == "x86_64-darwin" then fetchurl {
       url = "https://dl.google.com/android/repository/build-tools_r${version}-macosx.zip";
-      sha256 = "0h71bv8rdkssn7a17vj3r7jl5jwsxbwpg3sig0k9a7yfwyfc71s8";
+      sha256 = "1ns6c8361l18s3a5x0jc2m3qr06glsb6ak7csrrw6dkzlv8cj5dk";
     }
     else throw "System ${stdenv.system} not supported!";
 

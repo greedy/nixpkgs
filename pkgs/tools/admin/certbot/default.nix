@@ -4,13 +4,13 @@
 
 python2Packages.buildPythonApplication rec {
   name = "certbot-${version}";
-  version = "0.6.0";
+  version = "0.19.0";
 
   src = fetchFromGitHub {
     owner = "certbot";
     repo = "certbot";
     rev = "v${version}";
-    sha256 = "1x0prlldkgg0hxmya4m5h3k3c872wr0jylmzpr3m04mk339yiw0c";
+    sha256 = "14i3q59v7j0q2pa1dri420fhil4h0vgl4vb471hp81f4y14gq6h7";
   };
 
   propagatedBuildInputs = with python2Packages; [
@@ -31,8 +31,8 @@ python2Packages.buildPythonApplication rec {
   buildInputs = [ dialog ] ++ (with python2Packages; [ nose mock gnureadline ]);
 
   patchPhase = ''
-    substituteInPlace certbot/notify.py --replace "/usr/sbin/sendmail" "/var/setuid-wrappers/sendmail"
-    substituteInPlace certbot/le_util.py --replace "sw_vers" "/usr/bin/sw_vers"
+    substituteInPlace certbot/notify.py --replace "/usr/sbin/sendmail" "/run/wrappers/bin/sendmail"
+    substituteInPlace certbot/util.py --replace "sw_vers" "/usr/bin/sw_vers"
   '';
 
   postInstall = ''

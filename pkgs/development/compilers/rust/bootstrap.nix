@@ -1,90 +1,42 @@
-{ stdenv, fetchurl, makeWrapper, cacert, zlib }:
+{ stdenv, fetchurl, callPackage }:
 
 let
-  inherit (stdenv.lib) optionalString;
+  # Note: the version MUST be one version prior to the version we're
+  # building
+  version = "1.21.0";
+
+  # fetch hashes by running `print-hashes.sh 1.21.0`
+  hashes = {
+    i686-unknown-linux-gnu = "b7caed0f602cdb8ef22e0bfa9125a65bec411e15c0b8901d937e43303ec7dbee";
+    x86_64-unknown-linux-gnu = "b41e70e018402bc04d02fde82f91bea24428e6be432f0df12ac400cfb03108e8";
+    armv7-unknown-linux-gnueabihf = "416fa6f107ad9e386002e6af1aec495472e2ee489c842183dd429a25b07488d6";
+    aarch64-unknown-linux-gnu = "491ee6c43cc672006968d665bd34c94cc2219ef3592d93d38097c97eaaa864c3";
+    i686-apple-darwin = "c8b0fabeebcde66b683f3a871187e614e07305adda414c2862cb332aecb2b3bf";
+    x86_64-apple-darwin = "75a7f4bd7c72948030bb9e421df27e8a650dea826fb5b836cf59d23d6f985a0d";
+  };
 
   platform =
     if stdenv.system == "i686-linux"
     then "i686-unknown-linux-gnu"
     else if stdenv.system == "x86_64-linux"
     then "x86_64-unknown-linux-gnu"
+    else if stdenv.system == "armv7l-linux"
+    then "armv7-unknown-linux-gnueabihf"
+    else if stdenv.system == "aarch64-linux"
+    then "aarch64-unknown-linux-gnu"
     else if stdenv.system == "i686-darwin"
     then "i686-apple-darwin"
     else if stdenv.system == "x86_64-darwin"
     then "x86_64-apple-darwin"
-    else abort "missing boostrap url for platform ${stdenv.system}";
-
-  # fetch hashes by running `print-hashes.sh 1.12.1`
-  bootstrapHash =
-    if stdenv.system == "i686-linux"
-    then "ede9b9d14d1ddbc29975d1ead73fcf2758719b4b371363afe1c32eb8d6e96bb3"
-    else if stdenv.system == "x86_64-linux"
-    then "9e546aec13e389429ba2d86c8f4e67eba5af146c979e4faa16ffb40ddaf9984c"
-    else if stdenv.system == "i686-darwin"
-    then "2648645c4fe1ecf36beb7de63501dd99e9547a7a6d5683acf2693b919a550b69"
-    else if stdenv.system == "x86_64-darwin"
-    then "0ac5e58dba3d24bf09dcc90eaac02d2df053122b0def945ec4cfe36ac6d4d011"
-    else throw "missing boostrap hash for platform ${stdenv.system}";
-
-  needsPatchelf = stdenv.isLinux;
+    else throw "missing bootstrap url for platform ${stdenv.system}";
 
   src = fetchurl {
      url = "https://static.rust-lang.org/dist/rust-${version}-${platform}.tar.gz";
-     sha256 = bootstrapHash;
+     sha256 = hashes."${platform}";
   };
 
-  version = "1.12.1";
-in
-
-rec {
-  rustc = stdenv.mkDerivation rec {
-    name = "rustc-bootstrap-${version}";
-
-    inherit version;
-    inherit src;
-
-    buildInputs = [ makeWrapper ];
-    phases = ["unpackPhase" "installPhase"];
-
-    installPhase = ''
-      ./install.sh --prefix=$out \
-        --components=rustc,rust-std-${platform},rust-docs
-
-      ${optionalString needsPatchelf ''
-        patchelf \
-          --set-interpreter $(cat $NIX_CC/nix-support/dynamic-linker) \
-          "$out/bin/rustc"
-      ''}
-
-      # Do NOT, I repeat, DO NOT use `wrapProgram` on $out/bin/rustc
-      # (or similar) here. It causes strange effects where rustc loads
-      # the wrong libraries in a bootstrap-build causing failures that
-      # are very hard to track dow. For details, see
-      # https://github.com/rust-lang/rust/issues/34722#issuecomment-232164943
-    '';
-  };
-
-  cargo = stdenv.mkDerivation rec {
-    name = "cargo-bootstrap-${version}";
-
-    inherit version;
-    inherit src;
-
-    buildInputs = [ makeWrapper zlib rustc ];
-    phases = ["unpackPhase" "installPhase"];
-
-    installPhase = ''
-      ./install.sh --prefix=$out \
-        --components=cargo
-
-      ${optionalString needsPatchelf ''
-        patchelf \
-          --set-interpreter $(cat $NIX_CC/nix-support/dynamic-linker) \
-          "$out/bin/cargo"
-      ''}
-
-      wrapProgram "$out/bin/cargo" \
-        --suffix PATH : "${rustc}/bin"
-    '';
-  };
-}
+in callPackage ./binaryBuild.nix
+  { inherit version src platform;
+    buildRustPackage = null;
+    versionType = "bootstrap";
+  }

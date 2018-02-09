@@ -1,34 +1,38 @@
-{ stdenv, callPackage, recurseIntoAttrs, makeRustPlatform,
-  targets ? [], targetToolchains ? [], targetPatches ? [] }:
+{ stdenv, callPackage, recurseIntoAttrs, makeRustPlatform, llvm, fetchurl
+, targets ? []
+, targetToolchains ? []
+, targetPatches ? []
+}:
 
 let
   rustPlatform = recurseIntoAttrs (makeRustPlatform (callPackage ./bootstrap.nix {}));
+  version = "1.22.1";
 in
-
 rec {
   rustc = callPackage ./rustc.nix {
-    shortVersion = "1.13";
-    isRelease = true;
-    forceBundledLLVM = false;
+    inherit llvm targets targetPatches targetToolchains rustPlatform version;
+
+    forceBundledLLVM = true;
+
     configureFlags = [ "--release-channel=stable" ];
-    srcRev = "2c6933acc05c61e041be764cb1331f6281993f3f";
-    srcSha = "1w0alyyc29cy2lczrqvg1kfycjxy0xg8fpzdac80m88fxpv23glp";
+
+    src = fetchurl {
+      url = "https://static.rust-lang.org/dist/rustc-${version}-src.tar.gz";
+      sha256 = "1lrzzp0nh7s61wgfs2h6ilaqi6iq89f1pd1yaf65l87bssyl4ylb";
+    };
 
     patches = [
-      ./patches/disable-lockfile-check.patch
-    ] ++ stdenv.lib.optional stdenv.needsPax ./patches/grsec.patch;
+      ./patches/0001-Disable-fragile-tests-libstd-net-tcp-on-Darwin-Linux.patch
+    ] ++ stdenv.lib.optional stdenv.needsPax ./patches/grsec.patch
+      # https://github.com/rust-lang/rust/issues/45410
+      ++ stdenv.lib.optional stdenv.isAarch64 ./patches/aarch64-disable-test_loading_cosine.patch;
 
-    inherit targets;
-    inherit targetPatches;
-    inherit targetToolchains;
-    inherit rustPlatform;
   };
 
   cargo = callPackage ./cargo.nix rec {
-    version = "0.14.0";
-    srcRev = "eca9e159b6b0d484788ac757cf23052eba75af55";
-    srcSha = "1zm5rzw1mvixnkzr4775pcxx6k235qqxbysyp179cbxsw3dm045s";
-    depsSha256 = "0gpn0cpwgpzwhc359qn6qplx371ag9pqbwayhqrsydk1zm5bm3zr";
+    version = "0.23.0";
+    srcSha = "14b2n1msxma19ydchj54hd7f2zdsr524fg133dkmdn7j65f1x6aj";
+    cargoSha256 = "1sj59z0w172qvjwg1ma5fr5am9dgw27086xwdnrvlrk4hffcr7y7";
 
     inherit rustc; # the rustc that will be wrapped by cargo
     inherit rustPlatform; # used to build cargo

@@ -1,4 +1,4 @@
-{ stdenv, fetchurl, cmake, pkgconfig, intltool, vala_0_23, wrapGAppsHook
+{ stdenv, fetchurl, cmake, pkgconfig, intltool, vala_0_34, wrapGAppsHook
 , gtk3, webkitgtk, librsvg, libnotify, sqlite
 , glib_networking, gsettings_desktop_schemas, libsoup, pcre, gnome3
 , libxcb, libpthreadstubs, libXdmcp, libxkbcommon, epoxy, at_spi2_core
@@ -13,7 +13,7 @@ stdenv.mkDerivation rec {
 
   meta = with stdenv.lib; {
     description = "Lightweight WebKitGTK+ web browser";
-    homepage = "http://midori-browser.org";
+    homepage = http://midori-browser.org;
     license = with licenses; [ lgpl21Plus ];
     platforms = with platforms; linux;
     maintainers = with maintainers; [ raskin ramkromberg ];
@@ -29,11 +29,10 @@ stdenv.mkDerivation rec {
   };
 
   nativeBuildInputs = [
-    pkgconfig wrapGAppsHook cmake intltool
+    pkgconfig wrapGAppsHook cmake intltool vala_0_34
   ];
 
   buildInputs = [
-    vala_0_23
     gtk3 webkitgtk librsvg libnotify sqlite gsettings_desktop_schemas pcre gnome3.gcr
     libxcb libpthreadstubs libXdmcp libxkbcommon epoxy at_spi2_core
     (libsoup.override {gnomeSupport = true; valaSupport = true;})

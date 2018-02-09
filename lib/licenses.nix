@@ -1,6 +1,5 @@
+{ lib }:
 let
-
-  lib = import ./default.nix;
 
   spdx = lic: lic // {
     url = "http://spdx.org/licenses/${lic.spdxId}";
@@ -16,7 +15,12 @@ lib.mapAttrs (n: v: v // { shortName = n; }) rec {
 
   afl21 = spdx {
     spdxId = "AFL-2.1";
-    fullName = "Academic Free License";
+    fullName = "Academic Free License v2.1";
+  };
+
+  afl3 = spdx {
+    spdxId = "AFL-3.0";
+    fullName = "Academic Free License v3.0";
   };
 
   agpl3 = spdx {
@@ -43,6 +47,11 @@ lib.mapAttrs (n: v: v // { shortName = n; }) rec {
   apsl20 = spdx {
     spdxId = "APSL-2.0";
     fullName = "Apple Public Source License 2.0";
+  };
+
+  arphicpl = {
+    fullName = "Arphic Public License";
+    url = https://www.freedesktop.org/wiki/Arphic_Public_License/;
   };
 
   artistic1 = spdx {
@@ -170,6 +179,12 @@ lib.mapAttrs (n: v: v // { shortName = n; }) rec {
     fullName = "DOC License";
   };
 
+  eapl = {
+    fullName = "EPSON AVASYS PUBLIC LICENSE";
+    url = http://avasys.jp/hp/menu000000700/hpg000000603.htm;
+    free = false;
+  };
+
   efl10 = spdx {
     spdxId = "EFL-1.0";
     fullName = "Eiffel Forum License v1.0";
@@ -185,10 +200,20 @@ lib.mapAttrs (n: v: v // { shortName = n; }) rec {
     fullName = "Eclipse Public License 1.0";
   };
 
+  epl20 = spdx {
+    spdxId = "EPL-2.0";
+    fullName = "Eclipse Public License 2.0";
+  };
+
   epson = {
     fullName = "Seiko Epson Corporation Software License Agreement for Linux";
     url = https://download.ebz.epson.net/dsc/du/02/eula/global/LINUX_EN.html;
     free = false;
+  };
+
+  eupl11 = spdx {
+    spdxId = "EUPL-1.1";
+    fullName = "European Union Public License 1.1";
   };
 
   fdl12 = spdx {
@@ -199,6 +224,12 @@ lib.mapAttrs (n: v: v // { shortName = n; }) rec {
   fdl13 = spdx {
     spdxId = "GFDL-1.3";
     fullName = "GNU Free Documentation License v1.3";
+  };
+
+  ffsl = {
+    fullName = "Floodgap Free Software License";
+    url = http://www.floodgap.com/software/ffsl/license.html;
+    free = false;
   };
 
   free = {
@@ -261,6 +292,11 @@ lib.mapAttrs (n: v: v // { shortName = n; }) rec {
     url = https://fedoraproject.org/wiki/Licensing/GPL_Classpath_Exception;
   };
 
+  hpnd = spdx {
+    spdxId = "HPND";
+    fullName = "Historic Permission Notice and Disclaimer";
+  };
+
   # Intel's license, seems free
   iasl = {
     fullName = "iASL";
@@ -272,9 +308,16 @@ lib.mapAttrs (n: v: v // { shortName = n; }) rec {
     fullName = "Independent JPEG Group License";
   };
 
-  inria = {
-    fullName  = "INRIA Non-Commercial License Agreement";
+  inria-compcert = {
+    fullName  = "INRIA Non-Commercial License Agreement for the CompCert verified compiler";
     url       = "http://compcert.inria.fr/doc/LICENSE";
+    free      = false;
+  };
+
+  inria-icesl = {
+    fullName = "INRIA Non-Commercial License Agreement for IceSL";
+    url      = "http://shapeforge.loria.fr/icesl/EULA_IceSL_binary.pdf";
+    free     = false;
   };
 
   ipa = spdx {
@@ -352,6 +395,11 @@ lib.mapAttrs (n: v: v // { shortName = n; }) rec {
     fullName = "Lucent Public License v1.02";
   };
 
+  miros = {
+    fullName = "MirOS License";
+    url = https://opensource.org/licenses/MirOS;
+  };
+
   # spdx.org does not (yet) differentiate between the X11 and Expat versions
   # for details see http://en.wikipedia.org/wiki/MIT_License#Various_versions
   mit = spdx {
@@ -374,6 +422,11 @@ lib.mapAttrs (n: v: v // { shortName = n; }) rec {
     fullName = "Mozilla Public License 2.0";
   };
 
+  mspl = spdx {
+    spdxId = "MS-PL";
+    fullName = "Microsoft Public License";
+  };
+
   msrla = {
     fullName  = "Microsoft Research License Agreement";
     url       = "http://research.microsoft.com/en-us/projects/pex/msr-la.txt";
@@ -388,7 +441,12 @@ lib.mapAttrs (n: v: v // { shortName = n; }) rec {
     url = "https://raw.githubusercontent.com/raboof/notion/master/LICENSE";
     fullName = "Notion modified LGPL";
   };
-  
+
+  nposl3 = spdx {
+    spdxId = "NPOSL-3.0";
+    fullName = "Non-Profit Open Software License 3.0";
+  };
+
   ofl = spdx {
     spdxId = "OFL-1.1";
     fullName = "SIL Open Font License 1.1";
@@ -402,6 +460,16 @@ lib.mapAttrs (n: v: v // { shortName = n; }) rec {
   openssl = spdx {
     spdxId = "OpenSSL";
     fullName = "OpenSSL License";
+  };
+
+  osl21 = spdx {
+    spdxId = "OSL-2.1";
+    fullName = "Open Software License 2.1";
+  };
+
+  osl3 = spdx {
+    spdxId = "OSL-3.0";
+    fullName = "Open Software License 3.0";
   };
 
   php301 = spdx {
@@ -447,6 +515,12 @@ lib.mapAttrs (n: v: v // { shortName = n; }) rec {
   sleepycat = spdx {
     spdxId = "Sleepycat";
     fullName = "Sleepycat License";
+  };
+
+  smail = {
+    shortName = "smail";
+    fullName = "SMAIL General Public License";
+    url = http://metadata.ftp-master.debian.org/changelogs/main/d/debianutils/debianutils_4.8.1_copyright;
   };
 
   tcltk = spdx {
@@ -510,17 +584,22 @@ lib.mapAttrs (n: v: v // { shortName = n; }) rec {
     fullName = "Do What The F*ck You Want To Public License";
   };
 
+  wxWindows = spdx {
+    spdxId = "WXwindows";
+    fullName = "wxWindows Library Licence, Version 3.1";
+  };
+
   zlib = spdx {
     spdxId = "Zlib";
     fullName = "zlib License";
   };
 
-  zpt20 = spdx { # FIXME: why zpt* instead of zpl*
+  zpl20 = spdx {
     spdxId = "ZPL-2.0";
     fullName = "Zope Public License 2.0";
   };
 
-  zpt21 = spdx {
+  zpl21 = spdx {
     spdxId = "ZPL-2.1";
     fullName = "Zope Public License 2.1";
   };

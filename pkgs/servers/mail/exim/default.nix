@@ -1,14 +1,15 @@
 { coreutils, fetchurl, db, openssl, pcre, perl, pkgconfig, stdenv }:
 
 stdenv.mkDerivation rec {
-  name = "exim-4.87";
+  name = "exim-4.90";
 
   src = fetchurl {
-    url = "http://mirror.switch.ch/ftp/mirror/exim/exim/exim4/${name}.tar.bz2";
-    sha256 = "1jbxn13shq90kpn0s73qpjnx5xm8jrpwhcwwgqw5s6sdzw6iwsbl";
+    url = "http://ftp.exim.org/pub/exim/exim4/${name}.tar.xz";
+    sha256 = "101syariyvv2xxhjyx1zfdvad6303ihp67800s8n4083km98nm4k";
   };
 
-  buildInputs = [ coreutils db openssl pcre perl pkgconfig ];
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [ coreutils db openssl pcre perl ];
 
   preBuild = ''
     sed '

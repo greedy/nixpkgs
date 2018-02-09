@@ -24,7 +24,7 @@ in stdenv.mkDerivation rec {
       --replace libGLU.so	${mesa}/lib/libGLU.so
   '';
 
-  NIX_CFLAGS_COMPILE = "-I${SDL2}/include/SDL";
+  NIX_CFLAGS_COMPILE = "-I${SDL2.dev}/include/SDL2 -I${SDL2_mixer}/include/SDL2";
   NIX_LDFLAGS = "-L${SDL2}/lib";
 
   makeFlags = [
@@ -70,7 +70,7 @@ in stdenv.mkDerivation rec {
     description = "Enhanched port of Duke Nukem 3D for various platforms";
     license = licenses.gpl2Plus;
     homepage = http://eduke32.com;
-    maintainers = with maintainers; [ nckx sander ];
+    maintainers = with maintainers; [ sander ];
     platforms = with platforms; linux;
   };
 }

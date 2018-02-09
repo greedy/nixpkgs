@@ -1,8 +1,9 @@
-{ stdenv, lib, fetchurl, glibc, musl
+{ stdenv, lib, buildPackages, fetchurl, fetchpatch
 , enableStatic ? false
 , enableMinimal ? false
-, useMusl ? false
+, useMusl ? false, musl
 , extraConfig ? ""
+, buildPlatform, hostPlatform
 }:
 
 let
@@ -26,16 +27,21 @@ let
 in
 
 stdenv.mkDerivation rec {
-  name = "busybox-1.25.1";
+  name = "busybox-1.28.0";
 
+  # Note to whoever is updating busybox: please verify that:
+  # nix-build pkgs/stdenv/linux/make-bootstrap-tools.nix -A test
+  # still builds after the update.
   src = fetchurl {
     url = "http://busybox.net/downloads/${name}.tar.bz2";
-    sha256 = "0bm0l8xdjdz3kdyajp8wg27yamsw7r2y88nnrxwvvz984c7pwri7";
+    sha256 = "1701carjf02y7r3djm1yvyd5kzrcxm4szinp7agfv7fmvfvm6ib0";
   };
 
-  hardeningDisable = [ "format" ] ++ lib.optional enableStatic [ "fortify" ];
+  hardeningDisable = [ "format" ] ++ lib.optionals enableStatic [ "fortify" ];
 
-  patches = [ ./busybox-in-store.patch ];
+  patches = [
+    ./busybox-in-store.patch
+  ];
 
   configurePhase = ''
     export KCONFIG_NOTIMESTAMP=1
@@ -62,7 +68,7 @@ stdenv.mkDerivation rec {
     CONFIG_DEFAULT_SETFONT_DIR "/etc/kbd"
 
     ${extraConfig}
-    $extraCrossConfig
+    CONFIG_CROSS_COMPILER_PREFIX "${stdenv.cc.targetPrefix}"
     EOF
 
     make oldconfig
@@ -71,26 +77,18 @@ stdenv.mkDerivation rec {
   '';
 
   postConfigure = lib.optionalString useMusl ''
-    makeFlagsArray+=("CC=gcc -isystem ${musl}/include -B${musl}/lib -L${musl}/lib")
+    makeFlagsArray+=("CC=${stdenv.cc.targetPrefix}gcc -isystem ${musl}/include -B${musl}/lib -L${musl}/lib")
   '';
 
+  depsBuildBuild = [ buildPackages.stdenv.cc ];
+
   buildInputs = lib.optionals (enableStatic && !useMusl) [ stdenv.cc.libc stdenv.cc.libc.static ];
-
-  crossAttrs = {
-    extraCrossConfig = ''
-      CONFIG_CROSS_COMPILER_PREFIX "${stdenv.cross.config}-"
-    '';
-
-    postConfigure = stdenv.lib.optionalString useMusl ''
-      makeFlagsArray+=("CC=$crossConfig-gcc -isystem ${musl.crossDrv}/include -B${musl.crossDrv}/lib -L${musl.crossDrv}/lib")
-    '';
-  };
 
   enableParallelBuilding = true;
 
   meta = with stdenv.lib; {
     description = "Tiny versions of common UNIX utilities in a single small executable";
-    homepage = http://busybox.net/;
+    homepage = https://busybox.net/;
     license = licenses.gpl2;
     maintainers = with maintainers; [ viric ];
     platforms = platforms.linux;

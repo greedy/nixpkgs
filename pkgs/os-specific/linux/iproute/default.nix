@@ -1,23 +1,13 @@
-{ fetchurl, stdenv, lib, flex, bison, db, iptables, pkgconfig
-, enableFan ? false
-}:
+{ fetchurl, stdenv, lib, flex, bison, db, iptables, pkgconfig }:
 
 stdenv.mkDerivation rec {
   name = "iproute2-${version}";
-  version = "4.7.0";
+  version = "4.15.0";
 
   src = fetchurl {
     url = "mirror://kernel/linux/utils/net/iproute2/${name}.tar.xz";
-    sha256 = "14kvpdlxq8204f5ayfdfb6mc0423mbf3px9q0spdly9sng7xnq4g";
+    sha256 = "0mc3g4kj7h3jhwz2b2gdf41gp6bhqn7axh4mnyvhkdnpk5m63m28";
   };
-
-  patches = lib.optionals enableFan [
-    # These patches were pulled from:
-    # https://launchpad.net/ubuntu/xenial/+source/iproute2
-    ./1000-ubuntu-poc-fan-driver.patch
-    ./1001-ubuntu-poc-fan-driver-v3.patch
-    ./1002-ubuntu-poc-fan-driver-vxlan.patch
-  ];
 
   preConfigure = ''
     patchShebangs ./configure
@@ -31,6 +21,7 @@ stdenv.mkDerivation rec {
     "MANDIR=$(out)/share/man"
     "BASH_COMPDIR=$(out)/share/bash-completion/completions"
     "DOCDIR=$(TMPDIR)/share/doc/${name}" # Don't install docs
+    "HDRDIR=$(TMPDIR)/include/iproute2" # Don't install headers
   ];
 
   buildFlags = [
@@ -47,10 +38,10 @@ stdenv.mkDerivation rec {
   enableParallelBuilding = true;
 
   meta = with stdenv.lib; {
-    homepage = http://www.linuxfoundation.org/collaborate/workgroups/networking/iproute2;
+    homepage = https://wiki.linuxfoundation.org/networking/iproute2;
     description = "A collection of utilities for controlling TCP/IP networking and traffic control in Linux";
     platforms = platforms.linux;
     license = licenses.gpl2;
-    maintainers = with maintainers; [ eelco wkennington ];
+    maintainers = with maintainers; [ eelco wkennington fpletz ];
   };
 }

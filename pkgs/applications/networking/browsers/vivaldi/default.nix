@@ -3,32 +3,21 @@
 , alsaLib, dbus_libs, cups, libexif, ffmpeg, systemd
 , freetype, fontconfig, libXft, libXrender, libxcb, expat, libXau, libXdmcp
 , libuuid, xz
-, gstreamer, gst_plugins_base, libxml2
-, glib, gtk2, pango, gdk_pixbuf, cairo, atk, gnome3
+, gstreamer, gst-plugins-base, libxml2
+, glib, gtk3, pango, gdk_pixbuf, cairo, atk, gnome3
 , nss, nspr
-, patchelf
+, patchelf, makeWrapper
+, proprietaryCodecs ? false, vivaldi-ffmpeg-codecs ? null
 }:
 
-let
-  version = "1.4";
-  build = "589.38-1";
-  fullVersion = "stable_${version}.${build}";
-
-  info = if stdenv.is64bit then {
-      arch = "amd64";
-      sha256 = "08qdpl5dkb2snpqlk3rsqlyl9rfas9v6bbcw2p4kzazhinak5hv3";
-    } else {
-      arch = "i386";
-      sha256 = "0wpaglc1aaam5bqxgvf5zwcbr0xll8yj63l19q792l51j1vkv56q";
-    };
-
-in stdenv.mkDerivation rec {
-  product    = "vivaldi";
-  name       = "${product}-${version}";
+stdenv.mkDerivation rec {
+  name = "${product}-${version}";
+  product = "vivaldi";
+  version = "1.13.1008.34-1";
 
   src = fetchurl {
-    inherit (info) sha256;
-    url = "https://downloads.vivaldi.com/stable/${product}-${fullVersion}_${info.arch}.deb";
+    url = "https://downloads.vivaldi.com/stable/${product}-stable_${version}_amd64.deb";
+    sha256 = "18p5n87n5rkd6dhdsf2lvcyhg6ipn0k4p6a79dy93vsgjmk4bvw2";
   };
 
   unpackPhase = ''
@@ -36,18 +25,20 @@ in stdenv.mkDerivation rec {
     tar -xvf data.tar.xz
   '';
 
-  buildInputs =
-    [ stdenv.cc.cc stdenv.cc.libc zlib libX11 libXt libXext libSM libICE
-      libXi libXft libXcursor libXfixes libXScrnSaver libXcomposite libXdamage libXtst libXrandr
-      atk alsaLib dbus_libs cups gtk2 gdk_pixbuf libexif ffmpeg systemd
-      freetype fontconfig libXrender libuuid expat glib nss nspr
-      gstreamer libxml2 gst_plugins_base pango cairo gnome3.gconf
-      patchelf
-    ];
+  nativeBuildInputs = [ patchelf makeWrapper ];
+
+  buildInputs = [
+    stdenv.cc.cc stdenv.cc.libc zlib libX11 libXt libXext libSM libICE libxcb
+    libXi libXft libXcursor libXfixes libXScrnSaver libXcomposite libXdamage libXtst libXrandr
+    atk alsaLib dbus_libs cups gtk3 gdk_pixbuf libexif ffmpeg systemd
+    freetype fontconfig libXrender libuuid expat glib nss nspr
+    gstreamer libxml2 gst-plugins-base pango cairo gnome3.gconf
+  ] ++ stdenv.lib.optional proprietaryCodecs vivaldi-ffmpeg-codecs;
 
   libPath = stdenv.lib.makeLibraryPath buildInputs
     + stdenv.lib.optionalString (stdenv.is64bit)
-      (":" + stdenv.lib.makeSearchPathOutput "lib" "lib64" buildInputs);
+      (":" + stdenv.lib.makeSearchPathOutput "lib" "lib64" buildInputs)
+    + ":$out/opt/vivaldi/lib";
 
   buildPhase = ''
     echo "Patching Vivaldi binaries"
@@ -55,6 +46,10 @@ in stdenv.mkDerivation rec {
       --set-interpreter "$(cat $NIX_CC/nix-support/dynamic-linker)" \
       --set-rpath "${libPath}" \
       opt/vivaldi/vivaldi-bin
+  '' + stdenv.lib.optionalString proprietaryCodecs ''
+    sed -i '/^VIVALDI_FFMPEG_FOUND/ a \
+    checkffmpeg "${vivaldi-ffmpeg-codecs}/lib/libffmpeg.so"' opt/vivaldi/vivaldi
+  '' + ''
     echo "Finished patching Vivaldi binaries"
   '';
 
@@ -77,6 +72,8 @@ in stdenv.mkDerivation rec {
         "$out"/opt/vivaldi/product_logo_''${d}.png \
         "$out"/share/icons/hicolor/''${d}x''${d}/apps/vivaldi.png
     done
+    wrapProgram "$out/bin/vivaldi" \
+      --suffix XDG_DATA_DIRS : ${gtk3}/share/gsettings-schemas/${gtk3.name}/
   '';
 
   meta = with stdenv.lib; {
@@ -84,6 +81,6 @@ in stdenv.mkDerivation rec {
     homepage    = "https://vivaldi.com";
     license     = licenses.unfree;
     maintainers = with maintainers; [ otwieracz nequissimus ];
-    platforms   = platforms.linux;
+    platforms   = [ "x86_64-linux" ];
   };
 }

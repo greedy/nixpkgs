@@ -19,17 +19,19 @@ with lib;
 
 stdenv.mkDerivation rec {
   name = "samba-${version}";
-  version = "4.4.6";
+  version = "4.7.4";
 
   src = fetchurl {
     url = "mirror://samba/pub/samba/stable/${name}.tar.gz";
-    sha256 = "1361ijz7vpgf66w3j9z7qb37rnlrydxw01ibjnfhjqqcb7fj7i1p";
+    sha256 = "0iw290n0q4l5s92d0f9yz27yp3rdfr6bvsmvg1xvd19g8p2d04pv";
   };
 
   outputs = [ "out" "dev" "man" ];
 
   patches =
     [ ./4.x-no-persistent-install.patch
+      ./patch-source3__libads__kerberos_keytab.c.patch
+      ./4.x-no-persistent-install-dynconfig.patch
     ];
 
   buildInputs =
@@ -66,7 +68,8 @@ stdenv.mkDerivation rec {
     ++ optional (!enableDomainController) "--without-ad-dc"
     ++ optionals (!enableLDAP) [ "--without-ldap" "--without-ads" ];
 
-  enableParallelBuilding = true;
+  # To build in parallel.
+  buildPhase = "python buildtools/bin/waf build -j $NIX_BUILD_CORES";
 
   # Some libraries don't have /lib/samba in RPATH but need it.
   # Use find -type f -executable -exec echo {} \; -exec sh -c 'ldd {} | grep "not found"' \;

@@ -1,6 +1,6 @@
 { fetchurl
-, version ? "2.6.6"
-, sha256 ? "0x0ldlwr627d0brw96jdbscib6d2nk19izvnh8lzsasszi1k5rkq"
+, version ? "2.6.13"
+, sha256 ? "1j98ww8cz9y4wwshg7p4i4acrmls3ywkyj1nlkh4k3bywwm50hfh"
 }:
 fetchurl {
   url = "http://production.cf.rubygems.org/rubygems/rubygems-${version}.tgz";

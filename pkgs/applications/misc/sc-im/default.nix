@@ -1,26 +1,26 @@
-{ stdenv, fetchFromGitHub, yacc, ncurses, libxml2 }:
+{ stdenv, fetchFromGitHub, yacc, ncurses, libxml2, libzip, libxls, pkgconfig }:
 
-let
-  version = "0.2.1";
-in
 stdenv.mkDerivation rec {
-
+  version = "0.6.0";
   name = "sc-im-${version}";
 
   src = fetchFromGitHub {
     owner = "andmarti1424";
     repo = "sc-im";
     rev = "v${version}";
-    sha256 = "0v6b8xksvd12vmz198vik2ranyr5mhnp85hl9yxh9svibs7jxsbb";
+    sha256 = "02ak3b0vv72mv38cwvy7qp0y6hgrzcgahkv1apgks3drpnz5w1sj";
   };
 
-  buildInputs = [ yacc ncurses libxml2 ];
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [ yacc ncurses libxml2 libzip libxls ];
 
   buildPhase = ''
     cd src
 
-    sed "s,prefix=/usr,prefix=$out," Makefile
-    sed "s,-I/usr/include/libxml2,-I$libxml2," Makefile
+    sed -e "\|^prefix  = /usr/local|   s|/usr/local|$out|" \
+        -e "\|^#LDLIBS += -lxlsreader| s|^#||            " \
+        -e "\|^#CFLAGS += -DXLS|       s|^#||            " \
+        -i Makefile
 
     make
     export DESTDIR=$out
@@ -31,7 +31,7 @@ stdenv.mkDerivation rec {
   '';
 
   meta = with stdenv.lib; {
-    homepage = "https://github.com/andmarti1424/sc-im";
+    homepage = https://github.com/andmarti1424/sc-im;
     description = "SC-IM - Spreadsheet Calculator Improvised - SC fork";
     license = licenses.bsdOriginal;
     maintainers = [ maintainers.matthiasbeyer ];

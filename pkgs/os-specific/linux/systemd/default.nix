@@ -4,43 +4,36 @@
 , kexectools, libmicrohttpd, linuxHeaders ? stdenv.cc.libc.linuxHeaders, libseccomp
 , iptables, gnu-efi
 , autoreconfHook, gettext, docbook_xsl, docbook_xml_dtd_42, docbook_xml_dtd_45
-, enableKDbus ? false
 }:
 
 assert stdenv.isLinux;
 
 stdenv.mkDerivation rec {
-  version = "231";
+  version = "234";
   name = "systemd-${version}";
 
   src = fetchFromGitHub {
-    owner = "NixOS";
+    owner = "nixos";
     repo = "systemd";
-    rev = "3b11791d323cf2d0e00a156967021e1ae9119de2";
-    sha256 = "1xzldwd6407jdg6z36smd49d961nmqykpay969i4xfdldcgyjdv0";
+    rev = "eef5613fda5";
+    sha256 = "0wgh5y319v56hcs82mhs58ipb100cz4x41vz3kh4bq1n7sx88cdz";
   };
-
-  patches = [
-    # Fixes tty issues, see #18158. Remove when upgrading to systemd 232.
-    (fetchpatch {
-      url = "https://github.com/systemd/systemd/commit/bd64d82c1c0e3fe2a5f9b3dd9132d62834f50b2d.patch";
-      sha256 = "1gc9fxdlnfmjhbi77xfwcb5mkhryjsdi0rmbh2lq2qq737iyqqwm";
-    })
-  ];
 
   outputs = [ "out" "lib" "man" "dev" ];
 
-  buildInputs =
-    [ linuxHeaders pkgconfig intltool gperf libcap kmod xz pam acl
-      /* cryptsetup */ libuuid m4 glib libxslt libgcrypt libgpgerror
-      libmicrohttpd kexectools libseccomp libffi audit lz4 libapparmor
-      iptables gnu-efi
+  nativeBuildInputs =
+    [ pkgconfig intltool gperf libxslt
       /* FIXME: we may be able to prevent the following dependencies
          by generating an autoconf'd tarball, but that's probably not
          worth it. */
       autoreconfHook gettext docbook_xsl docbook_xml_dtd_42 docbook_xml_dtd_45
     ];
-
+  buildInputs =
+    [ linuxHeaders libcap kmod xz pam acl
+      /* cryptsetup */ libuuid m4 glib libgcrypt libgpgerror
+      libmicrohttpd kexectools libseccomp libffi audit lz4 libapparmor
+      iptables gnu-efi
+    ];
 
   configureFlags =
     [ "--localstatedir=/var"
@@ -53,7 +46,6 @@ stdenv.mkDerivation rec {
       "--with-dbussystemservicedir=$(out)/share/dbus-1/system-services"
       "--with-dbussessionservicedir=$(out)/share/dbus-1/services"
       "--with-tty-gid=3" # tty in NixOS has gid 3
-      "--enable-compat-libs" # get rid of this eventually
       "--disable-tests"
 
       "--enable-lz4"
@@ -80,12 +72,23 @@ stdenv.mkDerivation rec {
       "--with-sysvinit-path="
       "--with-sysvrcnd-path="
       "--with-rc-local-script-path-stop=/etc/halt.local"
-    ] ++ (if enableKDbus then [ "--enable-kdbus" ] else [ "--disable-kdbus" ]);
+    ];
 
   hardeningDisable = [ "stackprotector" ];
 
+  patches = [
+    # TODO: Remove this patch when we have a systemd version
+    # with https://github.com/systemd/systemd/pull/6678
+    (fetchpatch {
+        url = "https://github.com/systemd/systemd/commit/58a78ae77063eddfcd23ea272bd2e0ddc9ea3ff7.patch";
+        sha256 = "0g3pvqigs69mciw6lj3zg12dmxnhwxndwxdjg78af52xrp0djfg8";
+    })
+  ];
+
   preConfigure =
     ''
+      unset RANLIB
+
       ./autogen.sh
 
       # FIXME: patch this in systemd properly (and send upstream).
@@ -109,8 +112,6 @@ stdenv.mkDerivation rec {
         --replace /usr/lib/systemd/catalog/ $out/lib/systemd/catalog/
 
       configureFlagsArray+=("--with-ntp-servers=0.nixos.pool.ntp.org 1.nixos.pool.ntp.org 2.nixos.pool.ntp.org 3.nixos.pool.ntp.org")
-
-      #export NIX_CFLAGS_LINK+=" -Wl,-rpath,$libudev/lib"
     '';
 
   PYTHON_BINARY = "${coreutils}/bin/env python"; # don't want a build time dependency on Python
@@ -176,16 +177,6 @@ stdenv.mkDerivation rec {
 
   enableParallelBuilding = true;
 
-  /*
-  # some libs fail to link to liblzma and/or libffi
-  postFixup = let extraLibs = stdenv.lib.makeLibraryPath [ xz.out libffi.out zlib.out ];
-    in ''
-      for f in "$out"/lib/*.so.0.*; do
-        patchelf --set-rpath `patchelf --print-rpath "$f"`':${extraLibs}' "$f"
-      done
-    '';
-  */
-
   # The interface version prevents NixOS from switching to an
   # incompatible systemd at runtime.  (Switching across reboots is
   # fine, of course.)  It should be increased whenever systemd changes
@@ -195,7 +186,7 @@ stdenv.mkDerivation rec {
   passthru.interfaceVersion = 2;
 
   meta = {
-    homepage = "http://www.freedesktop.org/wiki/Software/systemd";
+    homepage = http://www.freedesktop.org/wiki/Software/systemd;
     description = "A system and service manager for Linux";
     platforms = stdenv.lib.platforms.linux;
     maintainers = [ stdenv.lib.maintainers.eelco ];

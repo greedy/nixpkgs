@@ -1,8 +1,8 @@
-{ newScope, stdenv, isl, fetchurl, overrideCC, wrapCC, darwin, ccWrapperFun }:
+{ newScope, stdenv, libstdcxxHook, isl, fetchurl, overrideCC, wrapCC, ccWrapperFun, darwin }:
 let
   callPackage = newScope (self // { inherit stdenv isl version fetch; });
 
-  version = "3.9.0";
+  version = "3.9.1";
 
   fetch = fetch_v version;
   fetch_v = ver: name: sha256: fetchurl {
@@ -10,8 +10,8 @@ let
     inherit sha256;
   };
 
-  compiler-rt_src = fetch "compiler-rt" "16m5g0hf8yg9npnw25j2a86g34nsvk9rsm3c84gbch2prm7j5rg0";
-  clang-tools-extra_src = fetch "clang-tools-extra" "052zg0h5vbmxnh2ikc743rw3649f112dfyn8hg39x6cfxi3fqyjv";
+  compiler-rt_src = fetch "compiler-rt" "16gc2gdmp5c800qvydrdhsp0bzb97s8wrakl6i8a4lgslnqnf2fk";
+  clang-tools-extra_src = fetch "clang-tools-extra" "0d9nh7j7brbh9avigcn69dlaihsl9p3cf9s45mw6fxzzvrdvd999";
 
   self = {
     llvm = callPackage ./llvm.nix {
@@ -22,20 +22,33 @@ let
       inherit clang-tools-extra_src stdenv;
     };
 
-    clang = wrapCC self.clang-unwrapped;
+    libclang = self.clang-unwrapped.lib;
+
+    clang = if stdenv.cc.isGNU then self.libstdcxxClang else self.libcxxClang;
+
+    libstdcxxClang = ccWrapperFun {
+      cc = self.clang-unwrapped;
+      /* FIXME is this right? */
+      inherit (stdenv.cc) bintools libc nativeTools nativeLibc;
+      extraPackages = [ libstdcxxHook ];
+    };
 
     libcxxClang = ccWrapperFun {
       cc = self.clang-unwrapped;
-      isClang = true;
-      inherit (self) stdenv;
       /* FIXME is this right? */
-      inherit (stdenv.cc) libc nativeTools nativeLibc;
+      inherit (stdenv.cc) bintools libc nativeTools nativeLibc;
       extraPackages = [ self.libcxx self.libcxxabi ];
     };
 
-    stdenv = overrideCC stdenv self.clang;
+    stdenv = stdenv.override (drv: {
+      allowedRequisites = null;
+      cc = self.clang;
+    });
 
-    libcxxStdenv = overrideCC stdenv self.libcxxClang;
+    libcxxStdenv = stdenv.override (drv: {
+      allowedRequisites = null;
+      cc = self.libcxxClang;
+    });
 
     lldb = callPackage ./lldb.nix {};
 

@@ -12,7 +12,7 @@ let
   substFunction = x:
     if builtins.isAttrs x then lib.mapAttrs (name: substFunction) x
     else if builtins.isList x then map substFunction x
-    else if builtins.isFunction x then "<function>"
+    else if lib.isFunction x then "<function>"
     else x;
 
   # Clean up declaration sites to not refer to the NixOS source tree.
@@ -65,7 +65,7 @@ let
       chmod -R u+w .
       ln -s ${modulesDoc} configuration/modules.xml
       ln -s ${optionsDocBook} options-db.xml
-      echo "${version}" > version
+      printf "%s" "${version}" > version
     '';
 
   toc = builtins.toFile "toc.xml"
@@ -94,25 +94,73 @@ let
     "--stringparam chunk.toc ${toc}"
   ];
 
+  manual-combined = runCommand "nixos-manual-combined"
+    { inherit sources;
+      buildInputs = [ libxml2 libxslt ];
+      meta.description = "The NixOS manual as plain docbook XML";
+    }
+    ''
+      ${copySources}
+
+      xmllint --xinclude --output ./manual-combined.xml ./manual.xml
+      xmllint --xinclude --noxincludenode \
+         --output ./man-pages-combined.xml ./man-pages.xml
+
+      # outputs the context of an xmllint error output
+      # LEN lines around the failing line are printed
+      function context {
+        # length of context
+        local LEN=6
+        # lines to print before error line
+        local BEFORE=4
+
+        # xmllint output lines are:
+        # file.xml:1234: there was an error on line 1234
+        while IFS=':' read -r file line rest; do
+          echo
+          if [[ -n "$rest" ]]; then
+            echo "$file:$line:$rest"
+            local FROM=$(($line>$BEFORE ? $line - $BEFORE : 1))
+            # number lines & filter context
+            nl --body-numbering=a "$file" | sed -n "$FROM,+$LEN p"
+          else
+            if [[ -n "$line" ]]; then
+              echo "$file:$line"
+            else
+              echo "$file"
+            fi
+          fi
+        done
+      }
+
+      function lintrng {
+        xmllint --debug --noout --nonet \
+          --relaxng ${docbook5}/xml/rng/docbook/docbook.rng \
+          "$1" \
+          2>&1 | context 1>&2
+          # ^ redirect assumes xmllint doesn’t print to stdout
+      }
+
+      lintrng manual-combined.xml
+      lintrng man-pages-combined.xml
+
+      mkdir $out
+      cp manual-combined.xml $out/
+      cp man-pages-combined.xml $out/
+    '';
+
   olinkDB = runCommand "manual-olinkdb"
     { inherit sources;
       buildInputs = [ libxml2 libxslt ];
     }
     ''
-      ${copySources}
-
       xsltproc \
         ${manualXsltprocOptions} \
         --stringparam collect.xref.targets only \
         --stringparam targets.filename "$out/manual.db" \
-        --nonet --xinclude \
+        --nonet \
         ${docbook5_xsl}/xml/xsl/docbook/xhtml/chunktoc.xsl \
-        ./manual.xml
-
-      # Check the validity of the man pages sources.
-      xmllint --noout --nonet --xinclude --noxincludenode \
-        --relaxng ${docbook5}/xml/rng/docbook/docbook.rng \
-        ./man-pages.xml
+        ${manual-combined}/manual-combined.xml
 
       cat > "$out/olinkdb.xml" <<EOF
       <?xml version="1.0" encoding="utf-8"?>
@@ -158,21 +206,15 @@ in rec {
       allowedReferences = ["out"];
     }
     ''
-      ${copySources}
-
-      # Check the validity of the manual sources.
-      xmllint --noout --nonet --xinclude --noxincludenode \
-        --relaxng ${docbook5}/xml/rng/docbook/docbook.rng \
-        manual.xml
-
       # Generate the HTML manual.
       dst=$out/share/doc/nixos
       mkdir -p $dst
       xsltproc \
         ${manualXsltprocOptions} \
         --stringparam target.database.document "${olinkDB}/olinkdb.xml" \
-        --nonet --xinclude --output $dst/ \
-        ${docbook5_xsl}/xml/xsl/docbook/xhtml/chunktoc.xsl ./manual.xml
+        --nonet --output $dst/ \
+        ${docbook5_xsl}/xml/xsl/docbook/xhtml/chunktoc.xsl \
+        ${manual-combined}/manual-combined.xml
 
       mkdir -p $dst/images/callouts
       cp ${docbook5_xsl}/xml/xsl/docbook/images/callouts/*.gif $dst/images/callouts/
@@ -190,13 +232,6 @@ in rec {
       buildInputs = [ libxml2 libxslt zip ];
     }
     ''
-      ${copySources}
-
-      # Check the validity of the manual sources.
-      xmllint --noout --nonet --xinclude --noxincludenode \
-        --relaxng ${docbook5}/xml/rng/docbook/docbook.rng \
-        manual.xml
-
       # Generate the epub manual.
       dst=$out/share/doc/nixos
 
@@ -204,10 +239,11 @@ in rec {
         ${manualXsltprocOptions} \
         --stringparam target.database.document "${olinkDB}/olinkdb.xml" \
         --nonet --xinclude --output $dst/epub/ \
-        ${docbook5_xsl}/xml/xsl/docbook/epub/docbook.xsl ./manual.xml
+        ${docbook5_xsl}/xml/xsl/docbook/epub/docbook.xsl \
+        ${manual-combined}/manual-combined.xml
 
       mkdir -p $dst/epub/OEBPS/images/callouts
-      cp -r ${docbook5_xsl}/xml/xsl/docbook/images/callouts/*.gif $dst/epub/OEBPS/images/callouts
+      cp -r ${docbook5_xsl}/xml/xsl/docbook/images/callouts/*.gif $dst/epub/OEBPS/images/callouts # */
       echo "application/epub+zip" > mimetype
       manual="$dst/nixos-manual.epub"
       zip -0Xq "$manual" mimetype
@@ -227,23 +263,16 @@ in rec {
       allowedReferences = ["out"];
     }
     ''
-      ${copySources}
-
-      # Check the validity of the man pages sources.
-      xmllint --noout --nonet --xinclude --noxincludenode \
-        --relaxng ${docbook5}/xml/rng/docbook/docbook.rng \
-        ./man-pages.xml
-
       # Generate manpages.
       mkdir -p $out/share/man
-      xsltproc --nonet --xinclude \
+      xsltproc --nonet \
         --param man.output.in.separate.dir 1 \
         --param man.output.base.dir "'$out/share/man/'" \
         --param man.endnotes.are.numbered 0 \
         --param man.break.after.slash 1 \
         --stringparam target.database.document "${olinkDB}/olinkdb.xml" \
         ${docbook5_xsl}/xml/xsl/docbook/manpages/docbook.xsl \
-        ./man-pages.xml
+        ${manual-combined}/man-pages-combined.xml
     '';
 
 }

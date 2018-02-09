@@ -32,9 +32,7 @@
 #   `meta` with `platforms` and `homepage` set to something you are
 #   unlikely to want to override for most packages
 
-{ overrides
-
-, lib, newScope, stdenv, fetchurl, fetchgit, fetchFromGitHub, fetchhg, runCommand
+{ lib, newScope, stdenv, fetchurl, fetchgit, fetchFromGitHub, fetchhg, runCommand
 
 , emacs, texinfo, lndir, makeWrapper
 , trivialBuild
@@ -56,7 +54,7 @@ let
   };
 
   melpaPackages = import ../applications/editors/emacs-modes/melpa-packages.nix {
-    inherit lib;
+    inherit external lib;
   };
 
   orgPackages = import ../applications/editors/emacs-modes/org-packages.nix {
@@ -75,26 +73,17 @@ let
 
   ## START HERE
 
-  tablist = melpaBuild rec {
-    pname = "tablist";
-    inherit (pdf-tools) src version;
-    fileSpecs = [ "lisp/tablist.el" "lisp/tablist-filter.el" ];
-    meta = {
-      description = "Extended tabulated-list-mode";
-      license = gpl3;
-    };
-  };
-
   pdf-tools = melpaBuild rec {
     pname = "pdf-tools";
-    version = "0.70";
+    version = "0.80";
     src = fetchFromGitHub {
       owner = "politza";
       repo = "pdf-tools";
       rev = "v${version}";
-      sha256 = "19sy49r3ijh36m7hl4vspw5c4i8pnfqdn4ldm2sqchxigkw56ayl";
+      sha256 = "1i4647vax5na73basc5dz4lh9kprir00fh8ps4i0l1y3ippnjs2s";
     };
-    buildInputs = with external; [ autoconf automake libpng zlib poppler pkgconfig ];
+    nativeBuildInputs = [ external.pkgconfig ];
+    buildInputs = with external; [ autoconf automake libpng zlib poppler ];
     preBuild = "make server/epdfinfo";
     fileSpecs = [ "lisp/pdf-*.el" "server/epdfinfo" ];
     packageRequires = [ tablist let-alist ];
@@ -205,6 +194,9 @@ let
     };
   };
 
+  ess-R-object-popup =
+    callPackage ../applications/editors/emacs-modes/ess-R-object-popup { };
+
   find-file-in-project = melpaBuild rec {
     pname = "find-file-in-project";
     version = "3.5";
@@ -225,6 +217,10 @@ let
     };
   };
 
+  filesets-plus = callPackage ../applications/editors/emacs-modes/filesets-plus { };
+
+  font-lock-plus = callPackage ../applications/editors/emacs-modes/font-lock-plus { };
+
   ghc-mod = melpaBuild rec {
     pname = "ghc";
     version = external.ghc-mod.version;
@@ -237,6 +233,28 @@ let
       license = bsd3;
     };
   };
+
+  haskell-unicode-input-method = melpaBuild rec {
+    pname = "emacs-haskell-unicode-input-method";
+    version = "20110905.2307";
+    src = fetchFromGitHub {
+      owner = "roelvandijk";
+      repo = "emacs-haskell-unicode-input-method";
+      rev = "d8d168148c187ed19350bb7a1a190217c2915a63";
+      sha256 = "09b7bg2s9aa4s8f2kdqs4xps3jxkq5wsvbi87ih8b6id38blhf78";
+    };
+    packageRequires = [];
+    meta = {
+      homepage = "https://melpa.org/#haskell-unicode-input-method/";
+      license = lib.licenses.free;
+    };
+  };
+
+  hexrgb = callPackage ../applications/editors/emacs-modes/hexrgb { };
+
+  header2 = callPackage ../applications/editors/emacs-modes/header2 { };
+
+  helm-words = callPackage ../applications/editors/emacs-modes/helm-words { };
 
   hindent = melpaBuild rec {
     pname = "hindent";
@@ -251,10 +269,17 @@ let
     };
   };
 
+  icicles = callPackage ../applications/editors/emacs-modes/icicles { };
+
+  redshank = callPackage ../applications/editors/emacs-modes/redshank { };
+
   rtags = melpaBuild rec {
     pname = "rtags";
-    version = "2.0"; # really, it's some arbitrary git hash
+    version = "2.12";
     src = external.rtags.src;
+
+    configurePhase = ":";
+
     propagatedUserEnvPkgs = [ external.rtags ];
     fileSpecs = [ "src/*.el" ];
     inherit (external.rtags) meta;
@@ -270,6 +295,9 @@ let
       license = gpl3Plus;
     };
   };
+
+  lib-requires =
+    callPackage ../applications/editors/emacs-modes/lib-requires { };
 
   lui = melpaBuild rec {
     pname   = "lui";
@@ -287,6 +315,16 @@ let
     inherit lib;
   };
 
+  org-mac-link =
+    callPackage ../applications/editors/emacs-modes/org-mac-link { };
+
+  perl-completion =
+    callPackage ../applications/editors/emacs-modes/perl-completion { };
+
+  railgun = callPackage ../applications/editors/emacs-modes/railgun { };
+
+  gn = callPackage ../applications/editors/emacs-modes/gn { };
+
   shorten = melpaBuild rec {
     pname   = "shorten";
     version = circe.version;
@@ -297,6 +335,8 @@ let
       license = gpl3Plus;
     };
   };
+
+  stgit = callPackage ../applications/editors/emacs-modes/stgit { };
 
   structured-haskell-mode = melpaBuild rec {
     pname = "shm";
@@ -312,6 +352,8 @@ let
       platforms = external.structured-haskell-mode.meta.platforms;
     };
   };
+
+  thingatpt-plus = callPackage ../applications/editors/emacs-modes/thingatpt-plus { };
 
   tramp = callPackage ../applications/editors/emacs-modes/tramp { };
 
@@ -333,6 +375,10 @@ let
       license = gpl3Plus;
     };
   };
+
+  yaoddmuse = callPackage ../applications/editors/emacs-modes/yaoddmuse { };
+
+  zeitgeist = callPackage ../applications/editors/emacs-modes/zeitgeist { };
 
   };
 

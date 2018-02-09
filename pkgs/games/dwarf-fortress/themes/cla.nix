@@ -5,13 +5,13 @@
 
 stdenv.mkDerivation rec {
   name = "cla-theme-${version}";
-  version = "43.04-v23";
+  version = "44.xx-v25";
 
   src = fetchFromGitHub {
     owner = "DFgraphics";
     repo = "CLA";
     rev = version;
-    sha256 = "0a88jkcli9iq0prg5w0xh1cyms0b7dnc9rdahn7wy7fyakyp7s27";
+    sha256 = "1h8nwa939qzqklbi8vwsq9p2brvv7sc0pbzzrdjnb221lr9p58zk";
   };
 
   installPhase = ''
@@ -19,13 +19,13 @@ stdenv.mkDerivation rec {
     cp -r data raw $out
   '';
 
-  passthru.dfVersion = "0.43.05";
+  passthru.dfVersion = "0.44.05";
 
   preferLocalBuild = true;
 
   meta = with stdenv.lib; {
     description = "CLA graphics set for Dwarf Fortress";
-    homepage = "http://www.bay12forums.com/smf/index.php?topic=105376.0";
+    homepage = http://www.bay12forums.com/smf/index.php?topic=105376.0;
     platforms = platforms.all;
     maintainers = with maintainers; [ abbradar ];
     license = licenses.free;

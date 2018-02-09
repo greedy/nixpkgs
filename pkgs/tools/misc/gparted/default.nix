@@ -4,11 +4,11 @@
 }:
 
 stdenv.mkDerivation rec {
-  name = "gparted-0.26.1";
+  name = "gparted-0.30.0";
 
   src = fetchurl {
-    sha256 = "1h9d6x335wxpm49yphzm9n1hbh2hcg0p2rphv76mrvsss91bcm1g";
     url = "mirror://sourceforge/gparted/${name}.tar.gz";
+    sha256 = "0jngbsbvg8k8vbpsphqbk8br2cbmxhabbm2c5bmxm2q5zvpr64fk";
   };
 
   configureFlags = [ "--disable-doc" ];
@@ -17,7 +17,7 @@ stdenv.mkDerivation rec {
   nativeBuildInputs = [ intltool gettext makeWrapper pkgconfig ];
 
   postInstall = ''
-    wrapProgram $out/sbin/gparted \
+    wrapProgram $out/bin/gparted \
       --prefix PATH : "${procps}/bin"
     wrapProgram $out/sbin/gpartedbin \
       --prefix PATH : "${stdenv.lib.makeBinPath [ gpart hdparm utillinux ]}"
@@ -33,6 +33,5 @@ stdenv.mkDerivation rec {
     homepage = http://gparted.org;
     license = licenses.gpl2Plus;
     platforms = platforms.linux;
-    maintainers = with maintainers; [ nckx ];
   };
 }

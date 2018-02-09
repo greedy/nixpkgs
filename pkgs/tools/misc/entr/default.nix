@@ -2,11 +2,11 @@
 
 stdenv.mkDerivation rec {
   name = "entr-${version}";
-  version = "3.5";
+  version = "3.9";
 
   src = fetchurl {
     url = "http://entrproject.org/code/${name}.tar.gz";
-    sha256 = "05k4jyjna0pr2dalwc1l1dhrcyk6pw7hbss7jl4ykwfadcs5br73";
+    sha256 = "0xk8y8asy0wxi5jx03c521p9919gjr8053lxpfzn83jkmqc8zmq2";
   };
 
   postPatch = ''

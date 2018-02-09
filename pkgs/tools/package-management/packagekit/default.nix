@@ -1,22 +1,23 @@
 { stdenv, fetchFromGitHub, lib
 , intltool, glib, pkgconfig, polkit, python, sqlite, systemd
-, gobjectIntrospection, vala_0_23, gtk_doc, autoreconfHook, autoconf-archive
-, nix, boost
+, gobjectIntrospection, vala_0_38, gtk_doc, autoreconfHook, autoconf-archive
+# TODO: set enableNixBackend to true, as soon as it builds
+, nix, enableNixBackend ? false, boost
 , enableCommandNotFound ? false
 , enableBashCompletion ? false, bash-completion ? null }:
 
 stdenv.mkDerivation rec {
   name = "packagekit-${version}";
-  version = "1.1.3";
+  version = "1.1.7";
 
   src = fetchFromGitHub {
     owner = "hughsie";
     repo = "PackageKit";
     rev = "PACKAGEKIT_${lib.replaceStrings ["."] ["_"] version}";
-    sha256 = "150mpar7bhlvwfpwsr6zrjn3yggvklzr6nlhk0shaxnrfkfxvvb6";
+    sha256 = "076rrczmyhapj87pxqldsar5pbz4mid6cm9l1n91zh2q403chdkb";
   };
 
-  buildInputs = [ glib polkit systemd python gobjectIntrospection vala_0_23 ]
+  buildInputs = [ glib polkit systemd python gobjectIntrospection vala_0_38 ]
                   ++ lib.optional enableBashCompletion bash-completion;
   propagatedBuildInputs = [ sqlite nix boost ];
   nativeBuildInputs = [ intltool pkgconfig autoreconfHook autoconf-archive gtk_doc ];
@@ -28,7 +29,6 @@ stdenv.mkDerivation rec {
 
   configureFlags = [
     "--enable-systemd"
-    "--enable-nix"
     "--disable-dummy"
     "--disable-cron"
     "--disable-introspection"
@@ -38,6 +38,7 @@ stdenv.mkDerivation rec {
     "--with-dbus-sys=$(out)/etc/dbus-1/system.d"
     "--with-systemdsystemunitdir=$(out)/lib/systemd/system/"
   ]
+  ++ lib.optional enableNixBackend "--enable-nix"
   ++ lib.optional (!enableBashCompletion) "--disable-bash-completion"
   ++ lib.optional (!enableCommandNotFound) "--disable-command-not-found";
 
@@ -63,6 +64,6 @@ stdenv.mkDerivation rec {
     homepage = http://www.packagekit.org/;
     license = licenses.gpl2Plus;
     platforms = platforms.linux;
-    maintainers = with maintainers; [ nckx matthewbauer ];
+    maintainers = with maintainers; [ matthewbauer ];
   };
 }

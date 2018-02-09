@@ -30,6 +30,7 @@ let
 
     patchPhase = ''
       sed -i -e 's,../SweetHome3D,${application.src},g' build.xml
+      sed -i -e 's,lib/macosx/java3d-1.6/jogl-all.jar,lib/java3d-1.6/jogl-all.jar,g' build.xml
     '';
 
     buildPhase = ''
@@ -49,7 +50,7 @@ let
     dontStrip = true;
 
     meta = {
-      homepage = "http://www.sweethome3d.com/index.jsp";
+      homepage = http://www.sweethome3d.com/index.jsp;
       inherit description;
       inherit license;
       maintainers = [ stdenv.lib.maintainers.edwtjo ];

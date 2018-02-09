@@ -2,16 +2,16 @@
 
 stdenv.mkDerivation rec {
   name = "wallabag-${version}";
-  version = "2.1.3";
+  version = "2.3.1";
 
   # remember to rm -r var/cache/* after a rebuild or unexpected errors will occur
 
   src = fetchurl {
-    url = "https://framabag.org/wallabag-release-${version}.tar.gz";
-    sha256 = "0pl1sqigrp08r657jmfpf8m3wnw65g2k3mg50zsc8xbrzn6nwbgp";
+    url = "https://static.wallabag.org/releases/wallabag-release-${version}.tar.gz";
+    sha256 = "1qk7jicni5g8acpjybrwnwf7zknk3b0mxiv5876lrsajcxdxwnf4";
   };
 
-  outputs = [ "out" "doc" ];
+  outputs = [ "out" ];
 
   patchPhase = ''
     rm Makefile # use the "shared hosting" package with bundled dependencies
@@ -22,7 +22,6 @@ stdenv.mkDerivation rec {
   ''; # exposes $WALLABAG_DATA
 
   installPhase = ''
-    mv docs $doc/
     mkdir $out/
     cp -R * $out/
   '';

@@ -2,18 +2,15 @@
 
 stdenv.mkDerivation rec {
   name = "rivet-${version}";
-  version = "2.5.2";
+  version = "2.6.0";
 
   src = fetchurl {
     url = "http://www.hepforge.org/archive/rivet/Rivet-${version}.tar.bz2";
-    sha256 = "01agf0bswqvci8nwp67kvrlwc2k0sg1s0lxpq2a9q58l99v2gakh";
+    sha256 = "1mvsa3v8d1pl2fj1dcdf8sikzm1yb2jcl0q34fyfsjw2cisxpv5f";
   };
 
-  pythonPath = []; # python wrapper support
-
   patches = [
-    ./key_val.patch
-    ./zaxis_fix.patch
+    ./darwin.patch # configure relies on impure sw_vers to -Dunix
   ];
 
   latex = texlive.combine { inherit (texlive)
@@ -27,8 +24,15 @@ stdenv.mkDerivation rec {
     xcolor
     xkeyval
     ;};
-  buildInputs = [ ghostscript hepmc imagemagick python2 latex makeWrapper ];
-  propagatedBuildInputs = [ fastjet gsl yoda ];
+  buildInputs = [ hepmc imagemagick python2 latex makeWrapper ];
+  propagatedBuildInputs = [ fastjet ghostscript gsl yoda ];
+
+  preConfigure = ''
+    substituteInPlace bin/rivet-buildplugin.in \
+      --replace '"which"' '"${which}/bin/which"' \
+      --replace 'mycxx=' 'mycxx=${stdenv.cc}/bin/${if stdenv.cc.isClang or false then "clang++" else "g++"}  #' \
+      --replace 'mycxxflags="' "mycxxflags=\"-std=c++11 $NIX_CFLAGS_COMPILE $NIX_CXXSTDLIB_COMPILE $NIX_CFLAGS_LINK "
+  '';
 
   preInstall = ''
     substituteInPlace bin/make-plots \
@@ -41,10 +45,6 @@ stdenv.mkDerivation rec {
       --replace '"convert"' '"${imagemagick.out}/bin/convert"'
     substituteInPlace bin/rivet \
       --replace '"less"' '"${less}/bin/less"'
-    substituteInPlace bin/rivet-buildplugin \
-      --replace '"which"' '"${which}/bin/which"' \
-      --replace 'mycxx=' 'mycxx=${stdenv.cc}/bin/${if stdenv.cc.isClang or false then "clang++" else "g++"}  #' \
-      --replace 'mycxxflags="' "mycxxflags=\"-std=c++11 $NIX_CFLAGS_COMPILE $NIX_CXXSTDLIB_COMPILE $NIX_CFLAGS_LINK "
     substituteInPlace bin/rivet-mkhtml \
       --replace '"make-plots"' \"$out/bin/make-plots\" \
       --replace '"rivet-cmphistos"' \"$out/bin/rivet-cmphistos\"

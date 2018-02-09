@@ -1,5 +1,5 @@
-{ lib, stdenv, fetchurl, pkgconfig, intltool, autoreconfHook
-, json_c, libsndfile, libtool
+{ lib, stdenv, fetchurl, fetchpatch, pkgconfig, intltool, autoreconfHook
+, libsndfile, libtool
 , xorg, libcap, alsaLib, glib
 , avahi, libjack2, libasyncns, lirc, dbus
 , sbc, bluez5, udev, openssl, fftwFloat
@@ -30,15 +30,17 @@
 
 , # Whether to build only the library.
   libOnly ? false
+
+, CoreServices, AudioUnit, Cocoa
 }:
 
 stdenv.mkDerivation rec {
   name = "${if libOnly then "lib" else ""}pulseaudio-${version}";
-  version = "9.0";
+  version = "11.0";
 
   src = fetchurl {
     url = "http://freedesktop.org/software/pulseaudio/releases/pulseaudio-${version}.tar.xz";
-    sha256 = "11j682g2mn723sz3bh4i44ggq29z053zcggy0glzn63zh9mxdly3";
+    sha256 = "0sf92knqkvqmfhrbz4vlsagzqlps72wycpmln5dygicg07a0a8q7";
   };
 
   patches = [ ./caps-fix.patch ];
@@ -51,8 +53,9 @@ stdenv.mkDerivation rec {
     lib.optionals stdenv.isLinux [ libcap ];
 
   buildInputs =
-    [ json_c libsndfile speexdsp fftwFloat ]
+    [ libtool libsndfile speexdsp fftwFloat ]
     ++ lib.optionals stdenv.isLinux [ glib dbus ]
+    ++ lib.optionals stdenv.isDarwin [ CoreServices AudioUnit Cocoa ]
     ++ lib.optionals (!libOnly) (
       [ libasyncns webrtc-audio-processing ]
       ++ lib.optional jackaudioSupport libjack2
@@ -119,7 +122,7 @@ stdenv.mkDerivation rec {
   meta = {
     description = "Sound server for POSIX and Win32 systems";
     homepage    = http://www.pulseaudio.org/;
-    licenses    = lib.licenses.lgpl2Plus;
+    license     = lib.licenses.lgpl2Plus;
     maintainers = with lib.maintainers; [ lovek323 wkennington ];
     platforms   = lib.platforms.unix;
 

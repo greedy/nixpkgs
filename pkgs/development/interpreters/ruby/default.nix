@@ -1,7 +1,7 @@
 { stdenv, lib, fetchurl, fetchpatch, fetchFromSavannah, fetchFromGitHub
 , zlib, openssl, gdbm, ncurses, readline, groff, libyaml, libffi, autoreconfHook, bison
 , autoconf, darwin ? null
-, buildEnv, bundler, bundix
+, buildEnv, bundler, bundix, Foundation
 } @ args:
 
 let
@@ -27,6 +27,7 @@ let
     tag = ver.gitTag;
     isRuby20 = ver.majMin == "2.0";
     isRuby21 = ver.majMin == "2.1";
+    isRuby25 = ver.majMin == "2.5";
     baseruby = self.override { useRailsExpress = false; };
     self = lib.makeOverridable (
       { stdenv, lib, fetchurl, fetchpatch, fetchFromSavannah, fetchFromGitHub
@@ -40,7 +41,7 @@ let
       , libffi, fiddleSupport ? true
       , autoreconfHook, bison, autoconf
       , darwin ? null
-      , buildEnv, bundler, bundix
+      , buildEnv, bundler, bundix, Foundation
       }:
       let rubySrc =
         if useRailsExpress then fetchFromGitHub {
@@ -59,31 +60,34 @@ let
         srcs = [ rubySrc rubygemsSrc ];
         sourceRoot =
           if useRailsExpress then
-            "ruby-${tag}-src"
+            rubySrc.name
           else
             unpackdir rubySrc;
 
         # Have `configure' avoid `/usr/bin/nroff' in non-chroot builds.
         NROFF = "${groff}/bin/nroff";
 
-        buildInputs = ops useRailsExpress [ autoreconfHook bison ]
-          ++ (op fiddleSupport libffi)
+        nativeBuildInputs = ops useRailsExpress [ autoreconfHook bison ];
+        buildInputs =
+             (op fiddleSupport libffi)
           ++ (ops cursesSupport [ ncurses readline ])
           ++ (op docSupport groff)
           ++ (op zlibSupport zlib)
           ++ (op opensslSupport openssl)
           ++ (op gdbmSupport gdbm)
           ++ (op yamlSupport libyaml)
+          ++ (op isRuby25 autoconf)
           # Looks like ruby fails to build on darwin without readline even if curses
           # support is not enabled, so add readline to the build inputs if curses
           # support is disabled (if it's enabled, we already have it) and we're
           # running on darwin
           ++ (op (!cursesSupport && stdenv.isDarwin) readline)
+          ++ (op (isRuby25 && stdenv.isDarwin) Foundation)
           ++ (ops stdenv.isDarwin (with darwin; [ libiconv libobjc libunwind ]));
 
         enableParallelBuilding = true;
 
-        hardeningDisable = lib.optional isRuby20 [ "format" ];
+        hardeningDisable = lib.optional isRuby20 "format";
 
         patches =
           (import ./patchsets.nix {
@@ -105,6 +109,11 @@ let
           cp ${config}/config.guess tool/
           cp ${config}/config.sub tool/
         ''
+        else if isRuby25 then ''
+          sed -i configure.ac -e '/config.guess/d'
+          cp ${config}/config.guess tool/
+          cp ${config}/config.sub tool/
+        ''
         else opString useRailsExpress ''
           sed -i configure.in -e '/config.guess/d'
           cp ${config}/config.guess tool/
@@ -113,6 +122,7 @@ let
 
         configureFlags = ["--enable-shared" "--enable-pthread"]
           ++ op useRailsExpress "--with-baseruby=${baseruby}/bin/ruby"
+          ++ op (!docSupport) "--disable-install-doc"
           ++ ops stdenv.isDarwin [
             # on darwin, we have /usr/include/tk.h -- so the configure script detects
             # that tk is installed
@@ -140,7 +150,7 @@ let
             addToSearchPath GEM_PATH \$1/${passthru.gemPath}
           }
 
-          envHooks+=(addGemPath)
+          addEnvHooks "$hostOffset" addGemPath
           EOF
         '' + opString useRailsExpress ''
           rbConfig=$(find $out/lib/ruby -name rbconfig.rb)
@@ -150,12 +160,12 @@ let
           sed -i "s|'--with-baseruby=${baseruby}/bin/ruby'||" $rbConfig
         '';
 
-        meta = {
-          license = stdenv.lib.licenses.ruby;
-          homepage = http://www.ruby-lang.org/en/;
+        meta = with stdenv.lib; {
           description = "The Ruby language";
-          maintainers = [ stdenv.lib.maintainers.vrthra ];
-          platforms = stdenv.lib.platforms.all;
+          homepage    = http://www.ruby-lang.org/en/;
+          license     = licenses.ruby;
+          maintainers = with maintainers; [ vrthra manveru ];
+          platforms   = platforms.all;
         };
 
         passthru = rec {
@@ -179,19 +189,11 @@ let
     ) args; in self;
 
 in {
-  ruby_1_9_3 = generic {
-    version = rubyVersion "1" "9" "3" "p551";
-    sha256 = {
-      src = "1s2ibg3s2iflzdv7rfxi1qqkvdbn2dq8gxdn0nxrb77ls5ffanxv";
-      git = "1r9xzzxmci2ajb34qb4y1w424mz878zdgzxkfp9w60agldxnb36s";
-    };
-  };
-
   ruby_2_0_0 = generic {
-    version = rubyVersion "2" "0" "0" "p647";
+    version = rubyVersion "2" "0" "0" "p648";
     sha256 = {
-      src = "1v2vbvydarcx5801gx9lc6gr6dfi0i7qbzwhsavjqbn79rdsz2n8";
-      git = "186pf4q9xymzn4zn1sjppl1skrl5f0159ixz5cz8g72dmmynq3g3";
+      src = "1y3n4c6xw2wki7pyjpq5zpbgxnw5i3jc8mcpj6rk7hs995mvv446";
+      git = "0ncjfq4hfqj9kcr8pbll6kypwnmcgs8w7l4466qqfyv7jj3yjd76";
     };
   };
 
@@ -203,19 +205,35 @@ in {
     };
   };
 
-  ruby_2_2_5 = generic {
-    version = rubyVersion "2" "2" "5" "";
+  ruby_2_2_9 = generic {
+    version = rubyVersion "2" "2" "9" "";
     sha256 = {
-      src = "1qrmlcyc0cy9hgafb1wny2h90rjyyh6d72nvr2h4xjm4jwbb7i1h";
-      git = "0k0av6ypyq08c9axm721f0xi2bcp1443l7ydbxv4v8x4vsxdkmq2";
+      src = "19m1ximl7vcrsvq595dgrjh4yb6kar944095wbywqh7waiqcfirg";
+      git = "03qrjh55098wcqh2khxryzkzfqkznjrcdgwf27r2bgcycbg5ca5q";
     };
   };
 
-  ruby_2_3_1 = generic {
-    version = rubyVersion "2" "3" "1" "";
+  ruby_2_3_6 = generic {
+    version = rubyVersion "2" "3" "6" "";
     sha256 = {
-      src = "1kbxg72las93w0y553cxv3lymy2wvij3i3pg1y9g8aq3na676z5q";
-      git = "0dv1rf5f9lj3icqs51bq7ljdcf17sdclmxm9hilwxps5l69v5q9r";
+      src = "07jpa7fw1gyf069m7alf2b0zm53qm08w2ns45mhzmvgrg4r528l3";
+      git = "1bk59i0ygdc5z3zz3k6indfrxd2ix55np6rwvkcdpdw8svm749ds";
+    };
+  };
+
+  ruby_2_4_3 = generic {
+    version = rubyVersion "2" "4" "3" "";
+    sha256 = {
+      src = "161smb52q19r9lrzy22b3bhnkd0z8wjffm0qsfkml14j5ic7a0zx";
+      git = "0x2lqbqm2rq9j5zh1p72dma56nqvdkfbgzb9wybm4y4hwhiw8c1m";
+    };
+  };
+
+  ruby_2_5_0 = generic {
+    version = rubyVersion "2" "5" "0" "";
+    sha256 = {
+      src = "1azj0d2lzziw6iml7bx3sxpxzcdmfwfq3yhm7djyp20q1xiz7rj6";
+      git = "0d436nqmp3ykdkp4sck5bb8sf3qvx30x1p58xh8axv66mvsyc2jd";
     };
   };
 }

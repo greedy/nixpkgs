@@ -4,10 +4,10 @@ with lib;
 
 let
   isConfig = x:
-    builtins.isAttrs x || builtins.isFunction x;
+    builtins.isAttrs x || lib.isFunction x;
 
   optCall = f: x:
-    if builtins.isFunction f
+    if lib.isFunction f
     then f x
     else f;
 
@@ -29,41 +29,63 @@ let
     };
 
   configType = mkOptionType {
-    name = "nixpkgs config";
+    name = "nixpkgs-config";
+    description = "nixpkgs config";
     check = traceValIfNot isConfig;
     merge = args: fold (def: mergeConfig def.value) {};
   };
 
+  overlayType = mkOptionType {
+    name = "nixpkgs-overlay";
+    description = "nixpkgs overlay";
+    check = lib.isFunction;
+    merge = lib.mergeOneOption;
+  };
+
+  _pkgs = import ../../.. config.nixpkgs;
+
 in
 
 {
-  options = {
-
-    nixpkgs.config = mkOption {
+  options.nixpkgs = {
+    config = mkOption {
       default = {};
       example = literalExample
         ''
-          { firefox.enableGeckoMediaPlayer = true;
-            packageOverrides = pkgs: {
-              firefox60Pkgs = pkgs.firefox60Pkgs.override {
-                enableOfficialBranding = true;
-              };
-            };
-          }
+          { firefox.enableGeckoMediaPlayer = true; }
         '';
       type = configType;
       description = ''
         The configuration of the Nix Packages collection.  (For
         details, see the Nixpkgs documentation.)  It allows you to set
-        package configuration options, and to override packages
-        globally through the <varname>packageOverrides</varname>
-        option.  The latter is a function that takes as an argument
-        the <emphasis>original</emphasis> Nixpkgs, and must evaluate
-        to a set of new or overridden packages.
+        package configuration options.
       '';
     };
 
-    nixpkgs.system = mkOption {
+    overlays = mkOption {
+      default = [];
+      example = literalExample
+        ''
+          [ (self: super: {
+              openssh = super.openssh.override {
+                hpnSupport = true;
+                kerberos = self.libkrb5;
+              };
+            };
+          ) ]
+        '';
+      type = types.listOf overlayType;
+      description = ''
+        List of overlays to use with the Nix Packages collection.
+        (For details, see the Nixpkgs documentation.)  It allows
+        you to override packages globally. This is a function that
+        takes as an argument the <emphasis>original</emphasis> Nixpkgs.
+        The first argument should be used for finding dependencies, and
+        the second should be used for overriding recipes.
+      '';
+    };
+
+    system = mkOption {
       type = types.str;
       example = "i686-linux";
       description = ''
@@ -73,14 +95,12 @@ in
         multi-platform deployment, or when building virtual machines.
       '';
     };
-
   };
 
   config = {
-    _module.args.pkgs = import ../../.. {
-      system = config.nixpkgs.system;
-
-      inherit (config.nixpkgs) config;
+    _module.args = {
+      pkgs = _pkgs;
+      pkgs_i686 = _pkgs.pkgsi686Linux;
     };
   };
 }

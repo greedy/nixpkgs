@@ -1,10 +1,10 @@
-{ stdenv, fetchurl, pkgconfig, gettext, perl
+{ stdenv, fetchurl, fetchpatch, pkgconfig, gettext, perl
 , expat, glib, cairo, pango, gdk_pixbuf, atk, at_spi2_atk, gobjectIntrospection
 , xorg, epoxy, json_glib, libxkbcommon, gmp
 , waylandSupport ? stdenv.isLinux, wayland, wayland-protocols
 , xineramaSupport ? stdenv.isLinux
 , cupsSupport ? stdenv.isLinux, cups ? null
-, darwin
+, darwin, gnome3
 }:
 
 assert cupsSupport -> cups != null;
@@ -13,7 +13,7 @@ with stdenv.lib;
 
 let
   ver_maj = "3.22";
-  ver_min = "1";
+  ver_min = "26";
   version = "${ver_maj}.${ver_min}";
 in
 stdenv.mkDerivation rec {
@@ -21,7 +21,7 @@ stdenv.mkDerivation rec {
 
   src = fetchurl {
     url = "mirror://gnome/sources/gtk+/${ver_maj}/gtk+-${version}.tar.xz";
-    sha256 = "127c8c5cfc32681f9ab3cb542eb0d5c16c1c02faba68bf8fcac9a3cf278ef471";
+    sha256 = "61eef0d320e541976e2dfe445729f12b5ade53050ee9de6184235cb60cd4b967";
   };
 
   outputs = [ "out" "dev" ];
@@ -29,11 +29,18 @@ stdenv.mkDerivation rec {
 
   nativeBuildInputs = [ pkgconfig gettext gobjectIntrospection perl ];
 
-  patches = [ ./3.0-immodules.cache.patch ];
+  patches = [
+    ./3.0-immodules.cache.patch
+    (fetchpatch {
+      name = "Xft-setting-fallback-compute-DPI-properly.patch";
+      url = "https://bug757142.bugzilla-attachments.gnome.org/attachment.cgi?id=344123";
+      sha256 = "0g6fhqcv8spfy3mfmxpyji93k8d4p4q4fz1v9a1c1cgcwkz41d7p";
+    })
+  ];
 
   buildInputs = [ libxkbcommon epoxy json_glib ];
   propagatedBuildInputs = with xorg; with stdenv.lib;
-    [ expat glib cairo pango gdk_pixbuf atk at_spi2_atk
+    [ expat glib cairo pango gdk_pixbuf atk at_spi2_atk gnome3.gsettings_desktop_schemas
       libXrandr libXrender libXcomposite libXi libXcursor libSM libICE ]
     ++ optionals waylandSupport [ wayland wayland-protocols ]
     ++ optionals stdenv.isDarwin (with darwin.apple_sdk.frameworks; [ AppKit Cocoa ])
@@ -63,6 +70,10 @@ stdenv.mkDerivation rec {
   postInstall = optionalString (!stdenv.isDarwin) ''
     substituteInPlace "$out/lib/gtk-3.0/3.0.0/printbackends/libprintbackend-cups.la" \
       --replace '-L${gmp.dev}/lib' '-L${gmp.out}/lib'
+    # The updater is needed for nixos env and it's tiny.
+    moveToOutput bin/gtk-update-icon-cache "$out"
+    # Launcher
+    moveToOutput bin/gtk-launch "$out"
   '';
 
   meta = with stdenv.lib; {
@@ -79,11 +90,11 @@ stdenv.mkDerivation rec {
       royalties.
     '';
 
-    homepage = http://www.gtk.org/;
+    homepage = https://www.gtk.org/;
 
     license = licenses.lgpl2Plus;
 
-    maintainers = with maintainers; [ urkud raskin vcunat lethalman ];
+    maintainers = with maintainers; [ raskin vcunat lethalman ];
     platforms = platforms.all;
   };
 }

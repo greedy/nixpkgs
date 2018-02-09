@@ -57,7 +57,7 @@ stdenv.mkDerivation rec {
 
   src = fetchurl {
     url = "mirror://sourceforge/project/deadbeef/${name}.tar.bz2";
-    sha256 = "0rwdxxn7h94vlgblbkswyvj6pm82488v8x5nrmlrcsbzjjf2pccw";
+    sha256 = "1168hgr1nf27pf24n1rlfh1kx1wiscwhpbhqw0rprwy203gsnqwa";
   };
 
   buildInputs = with stdenv.lib; [ jansson ]
@@ -91,7 +91,7 @@ stdenv.mkDerivation rec {
 
   meta = with stdenv.lib; {
     description = "Ultimate Music Player for GNU/Linux";
-    homepage = "http://deadbeef.sourceforge.net/";
+    homepage = http://deadbeef.sourceforge.net/;
     license = licenses.gpl2;
     platforms = platforms.linux;
     maintainers = [ maintainers.abbradar ];

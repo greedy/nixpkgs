@@ -11,11 +11,11 @@ let
   ]);
 in
 stdenv.mkDerivation rec {
-  name = "dnsmasq-2.76";
+  name = "dnsmasq-2.78";
 
   src = fetchurl {
     url = "http://www.thekelleys.org.uk/dnsmasq/${name}.tar.xz";
-    sha256 = "15lzih6671gh9knzpl8mxchiml7z5lfqzr7jm2r0rjhrxs6nk4jb";
+    sha256 = "0ar5h5v3kas2qx2wgy5iqin15gc4jhqrqs067xacgc3lii1rz549";
   };
 
   preBuild = ''
@@ -39,6 +39,11 @@ stdenv.mkDerivation rec {
   # module can create it in Nix-land?
   postInstall = ''
     install -Dm644 trust-anchors.conf $out/share/dnsmasq/trust-anchors.conf
+  '' + optionalString stdenv.isDarwin ''
+    install -Dm644 contrib/MacOSX-launchd/uk.org.thekelleys.dnsmasq.plist \
+      $out/Library/LaunchDaemons/uk.org.thekelleys.dnsmasq.plist
+    substituteInPlace $out/Library/LaunchDaemons/uk.org.thekelleys.dnsmasq.plist \
+      --replace "/usr/local/sbin" "$out/bin"
   '' + optionalString stdenv.isLinux ''
     install -Dm644 dbus/dnsmasq.conf $out/etc/dbus-1/system.d/dnsmasq.conf
     install -Dm755 contrib/lease-tools/dhcp_lease_time $out/bin/dhcp_lease_time

@@ -1,30 +1,35 @@
-{ lib, stdenv, fetchurl, enableLargeConfig ? false }:
+{ lib, stdenv, fetchurl, pkgconfig, libatomic_ops, enableLargeConfig ? false
+, buildPlatform, hostPlatform
+}:
 
 stdenv.mkDerivation rec {
-  name = "boehm-gc-7.2f";
+  name = "boehm-gc-${version}";
+  version = "7.6.4";
 
   src = fetchurl {
-    url = http://www.hboehm.info/gc/gc_source/gc-7.2f.tar.gz;
-    sha256 = "119x7p1cqw40mpwj80xfq879l9m1dkc7vbc1f3bz3kvkf8bf6p16";
+    urls = [
+      "http://www.hboehm.info/gc/gc_source/gc-${version}.tar.gz"
+      "https://github.com/ivmai/bdwgc/releases/download/v${version}/gc-${version}.tar.gz"
+    ];
+    sha256 = "076dzsqqyxd3nlzs0z277vvhqjp8nv5dqi763s0m90zr6ljiyk5r";
   };
-  patches = if stdenv.isCygwin then [ ./cygwin.patch ] else null;
+
+  buildInputs = [ libatomic_ops ];
+  nativeBuildInputs = [ pkgconfig ];
 
   outputs = [ "out" "dev" "doc" ];
+  separateDebugInfo = stdenv.isLinux;
 
   configureFlags =
     [ "--enable-cplusplus" ]
     ++ lib.optional enableLargeConfig "--enable-large-config";
 
-  doCheck = true;
+  doCheck = true; # not cross;
 
   # Don't run the native `strip' when cross-compiling.
-  dontStrip = stdenv ? cross;
+  dontStrip = hostPlatform != buildPlatform;
 
-  postInstall =
-    ''
-      mkdir -p $out/share/doc
-      mv $out/share/gc $out/share/doc/gc
-    '';
+  enableParallelBuilding = true;
 
   meta = {
     description = "The Boehm-Demers-Weiser conservative garbage collector for C and C++";

@@ -41,7 +41,7 @@ let
 
   entry = "${manual.manual}/share/doc/nixos/index.html";
 
-  help = pkgs.writeScriptBin "nixos-help"
+  helpScript = pkgs.writeScriptBin "nixos-help"
     ''
       #! ${pkgs.stdenv.shell} -e
       browser="$BROWSER"
@@ -58,6 +58,14 @@ let
       exec "$browser" ${entry}
     '';
 
+  desktopItem = pkgs.makeDesktopItem {
+    name = "nixos-manual";
+    desktopName = "NixOS Manual";
+    genericName = "View NixOS documentation in a web browser";
+    icon = "nix-snowflake";
+    exec = "${helpScript}/bin/nixos-help";
+    categories = "System";
+  };
 in
 
 {
@@ -105,7 +113,8 @@ in
     system.build.manual = manual;
 
     environment.systemPackages =
-      [ manual.manual help ]
+      [ manual.manual helpScript ]
+      ++ optionals config.services.xserver.enable [desktopItem pkgs.nixos-icons]
       ++ optional config.programs.man.enable manual.manpages;
 
     boot.extraTTYs = mkIf cfg.showManual ["tty${toString cfg.ttyNumber}"];
@@ -126,8 +135,9 @@ in
         };
       };
 
-    services.mingetty.helpLine = mkIf cfg.showManual
-      "\nPress <Alt-F${toString cfg.ttyNumber}> for the NixOS manual.";
+      services.mingetty.helpLine = "\nRun `nixos-help` "
+        + lib.optionalString cfg.showManual "or press <Alt-F${toString cfg.ttyNumber}> "
+        + "for the NixOS manual.";
 
   };
 

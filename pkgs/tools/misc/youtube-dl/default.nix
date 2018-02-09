@@ -1,5 +1,5 @@
-{ stdenv, fetchurl, buildPythonApplication, makeWrapper, zip, ffmpeg, rtmpdump, pandoc
-, atomicparsley
+{ stdenv, targetPlatform, fetchurl, buildPythonApplication
+, zip, ffmpeg, rtmpdump, phantomjs2, atomicparsley, pycryptodome, pandoc
 # Pandoc is required to build the package's man page. Release tarballs contain a
 # formatted man page already, though, it will still be installed. We keep the
 # manpage argument in place in case someone wants to use this derivation to
@@ -8,30 +8,35 @@
 , generateManPage ? false
 , ffmpegSupport ? true
 , rtmpSupport ? true
-}:
+, phantomjsSupport ? !targetPlatform.isDarwin # phantomjs2 is broken on darwin
+, hlsEncryptedSupport ? true
+, makeWrapper }:
 
 with stdenv.lib;
-
 buildPythonApplication rec {
 
   name = "youtube-dl-${version}";
-  version = "2016.11.22";
+  version = "2018.02.08";
 
   src = fetchurl {
     url = "https://yt-dl.org/downloads/${version}/${name}.tar.gz";
-    sha256 = "e8d599c512ce56a6ea46955e2bb8f4471ae8a6f757183212cc49b6dd48d9a282";
+    sha256 = "0iq5mav782gz0gm00rry3v7gdxkkx4y1k0p20pvz32ga4id5k1mg";
   };
 
-  buildInputs = [ makeWrapper zip ] ++ optional generateManPage pandoc;
+  nativeBuildInputs = [ makeWrapper ];
+  buildInputs = [ zip ] ++ optional generateManPage pandoc;
+  propagatedBuildInputs = optional hlsEncryptedSupport pycryptodome;
 
   # Ensure ffmpeg is available in $PATH for post-processing & transcoding support.
   # rtmpdump is required to download files over RTMP
   # atomicparsley for embedding thumbnails
-  postInstall = let
-    packagesthatwillbeusedbelow = [ atomicparsley ] ++ optional ffmpegSupport ffmpeg ++ optional rtmpSupport rtmpdump;
-  in ''
-    wrapProgram $out/bin/youtube-dl --prefix PATH : "${makeBinPath packagesthatwillbeusedbelow}"
-  '';
+  makeWrapperArgs = let
+      packagesToBinPath =
+        [ atomicparsley ]
+        ++ optional ffmpegSupport ffmpeg
+        ++ optional rtmpSupport rtmpdump
+        ++ optional phantomjsSupport phantomjs2;
+    in [ ''--prefix PATH : "${makeBinPath packagesToBinPath}"'' ];
 
   # Requires network
   doCheck = false;
@@ -48,6 +53,6 @@ buildPythonApplication rec {
     '';
     license = licenses.publicDomain;
     platforms = with platforms; linux ++ darwin;
-    maintainers = with maintainers; [ bluescreen303 phreedom AndersonTorres fuuzetsu ];
+    maintainers = with maintainers; [ bluescreen303 phreedom AndersonTorres fuuzetsu fpletz ];
   };
 }

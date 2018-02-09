@@ -3,11 +3,11 @@ let
   s = # Generated upstream information
   rec {
     baseName="luarocks";
-    version="2.4.0";
+    version="2.4.3";
     name="${baseName}-${version}";
-    hash="1hwpjj4nvy8m7hfmhf52vbhmlh7r3wfjjcc589yj8dnh528iqf24";
-    url="http://luarocks.org/releases/luarocks-2.4.0.tar.gz";
-    sha256="1hwpjj4nvy8m7hfmhf52vbhmlh7r3wfjjcc589yj8dnh528iqf24";
+    hash="0binkd8mpzdzvx0jw0dwm4kr1p7jny015zykf8f15fymzqr4shad";
+    url="http://luarocks.org/releases/luarocks-2.4.3.tar.gz";
+    sha256="0binkd8mpzdzvx0jw0dwm4kr1p7jny015zykf8f15fymzqr4shad";
   };
   buildInputs = [
     lua curl makeWrapper which unzip
@@ -47,6 +47,6 @@ stdenv.mkDerivation {
     description = ''A package manager for Lua'';
     license = stdenv.lib.licenses.mit ;
     maintainers = [stdenv.lib.maintainers.raskin];
-    platforms = stdenv.lib.platforms.linux;
+    platforms = stdenv.lib.platforms.linux ++ stdenv.lib.platforms.darwin;
   };
 }

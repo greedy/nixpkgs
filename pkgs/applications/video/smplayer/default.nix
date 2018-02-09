@@ -1,16 +1,15 @@
-{ stdenv, fetchurl, qmakeHook, qtscript }:
+{ stdenv, fetchurl, qmake, qtscript }:
 
 stdenv.mkDerivation rec {
-  name = "smplayer-16.1.0";
+  name = "smplayer-17.9.0";
 
   src = fetchurl {
     url = "mirror://sourceforge/smplayer/${name}.tar.bz2";
-    sha256 = "1jfqpmbbjrs9lna44dp10zblj7b0cras9sb0nczycpkcsdi9np6j";
+    sha256 = "0s9856cmwl829d2xc2ycf97phpv4a2d39ybmnbhsrb07jq5hkw1a";
   };
 
-  patches = [ ./basegui.cpp.patch ];
-
-  buildInputs = [ qmakeHook qtscript ];
+  buildInputs = [ qtscript ];
+  nativeBuildInputs = [ qmake ];
 
   dontUseQmakeConfigure = true;
 
@@ -20,7 +19,7 @@ stdenv.mkDerivation rec {
 
   meta = {
     description = "A complete front-end for MPlayer";
-    homepage = "http://smplayer.sourceforge.net/";
+    homepage = http://smplayer.sourceforge.net/;
     license = stdenv.lib.licenses.gpl3Plus;
     platforms = stdenv.lib.platforms.linux;
   };

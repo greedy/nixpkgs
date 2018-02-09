@@ -10,14 +10,18 @@ let
   safeX11 = stdenv: !(stdenv.isArm || stdenv.isMips);
 in
 
-{ stdenv, fetchurl, ncurses, buildEnv, libX11, xproto, useX11 ? safeX11 stdenv }:
+{ stdenv, fetchurl, ncurses, buildEnv
+, libX11, xproto, useX11 ? safeX11 stdenv
+, flambdaSupport ? false
+}:
 
 assert useX11 -> !stdenv.isArm && !stdenv.isMips;
+assert flambdaSupport -> stdenv.lib.versionAtLeast version "4.03";
 
 let
    useNativeCompilers = !stdenv.isMips;
-   inherit (stdenv.lib) optionals optionalString;
-   name = "ocaml-${version}";
+   inherit (stdenv.lib) optional optionals optionalString;
+   name = "ocaml${optionalString flambdaSupport "+flambda"}-${version}";
 in
 
 stdenv.mkDerivation (args // rec {
@@ -36,12 +40,14 @@ stdenv.mkDerivation (args // rec {
 
   prefixKey = "-prefix ";
   configureFlags = optionals useX11 [ "-x11lib" x11lib
-                                      "-x11include" x11inc ];
+                                      "-x11include" x11inc ]
+  ++ optional flambdaSupport "-flambda"
+  ;
 
   buildFlags = "world" + optionalString useNativeCompilers " bootstrap world.opt";
   buildInputs = [ncurses] ++ optionals useX11 [ libX11 xproto ];
   installTargets = "install" + optionalString useNativeCompilers " installopt";
-  preConfigure = ''
+  preConfigure = optionalString (!stdenv.lib.versionAtLeast version "4.04") ''
     CAT=$(type -tp cat)
     sed -e "s@/bin/cat@$CAT@" -i config/auto-aux/sharpbang
   '';
@@ -56,7 +62,7 @@ stdenv.mkDerivation (args // rec {
 
   meta = with stdenv.lib; {
     homepage = http://caml.inria.fr/ocaml;
-    branch = "4.03";
+    branch = versionNoPatch;
     license = with licenses; [
       qpl /* compiler */
       lgpl2 /* library */

@@ -1,11 +1,12 @@
 { stdenv, fetchurl, fetchpatch, ncurses, utmp, pam ? null }:
 
 stdenv.mkDerivation rec {
-  name = "screen-4.4.0";
+  name = "screen-${version}";
+  version = "4.6.2";
 
   src = fetchurl {
     url = "mirror://gnu/screen/${name}.tar.gz";
-    sha256 = "12r12xwhsg59mlprikbbmn60gh8lqhrvyar7mlxg4fwsfma2lwpg";
+    sha256 = "0fps0fsipfbh7c2cnp7rjw9n79j0ysq21mk8hzifa33a1r924s8v";
   };
 
   configureFlags= [

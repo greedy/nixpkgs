@@ -1,4 +1,4 @@
-{ stdenv, fetchurl
+{ stdenv, hostPlatform, fetchurl
 , bzip2
 , gdbm
 , fetchpatch
@@ -6,16 +6,20 @@
 , openssl
 , readline
 , sqlite
-, tcl ? null, tk ? null, xlibsWrapper ? null, libX11 ? null, x11Support ? false
+, tcl ? null, tk ? null, tix ? null, xlibsWrapper ? null, libX11 ? null, x11Support ? false
 , zlib
 , callPackage
 , self
-, python27Packages
 , gettext
 , db
 , expat
 , libffi
 , CF, configd, coreutils
+, python-setup-hook
+# Some proprietary libs assume UCS2 unicode, especially on darwin :(
+, ucsEncoding ? 4
+# For the Python package set
+, pkgs, packageOverrides ? (self: super: {})
 }:
 
 assert x11Support -> tcl != null
@@ -27,7 +31,7 @@ with stdenv.lib;
 
 let
   majorVersion = "2.7";
-  minorVersion = "12";
+  minorVersion = "14";
   minorVersionSuffix = "";
   pythonVersion = majorVersion;
   version = "${majorVersion}.${minorVersion}${minorVersionSuffix}";
@@ -36,7 +40,7 @@ let
 
   src = fetchurl {
     url = "https://www.python.org/ftp/python/${majorVersion}.${minorVersion}/Python-${version}.tar.xz";
-    sha256 = "0y7rl603vmwlxm6ilkhc51rx2mfj14ckcz40xxgs0ljnvlhp30yp";
+    sha256 = "0rka541ys16jwzcnnvjp2v12m4cwgd2jp6wj4kj511p715pb5zvi";
   };
 
   hasDistutilsCxxPatch = !(stdenv.cc.isGNU or false);
@@ -56,13 +60,6 @@ let
 
       ./properly-detect-curses.patch
 
-      # FIXME: get rid of this after the next release, when the commit referenced here makes
-      # it in. We need it until then because it breaks compilation of programs that use
-      # locale with clang 3.8 and higher.
-      (fetchpatch {
-        url    = "https://hg.python.org/cpython/raw-rev/e0ec3471cb09";
-        sha256 = "1jdgb70jw942r4kmr01qll7mk1di8jx0qiabmp20jhnmha246ivq";
-      })
     ] ++ optionals stdenv.isLinux [
 
       # Disable the use of ldconfig in ctypes.util.find_library (since
@@ -72,7 +69,7 @@ let
       # libuuid, slowing down program startup a lot).
       ./no-ldconfig.patch
 
-    ] ++ optionals stdenv.isCygwin [
+    ] ++ optionals hostPlatform.isCygwin [
       ./2.5.2-ctypes-util-find_library.patch
       ./2.5.2-tkinter-x11.patch
       ./2.6.2-ssl-threads.patch
@@ -112,26 +109,28 @@ let
   configureFlags = [
     "--enable-shared"
     "--with-threads"
-    "--enable-unicode=ucs4"
-  ] ++ optionals stdenv.isCygwin [
+    "--enable-unicode=ucs${toString ucsEncoding}"
+  ] ++ optionals (hostPlatform.isCygwin || hostPlatform.isAarch64) [
     "--with-system-ffi"
+  ] ++ optionals hostPlatform.isCygwin [
     "--with-system-expat"
     "ac_cv_func_bind_textdomain_codeset=yes"
   ] ++ optionals stdenv.isDarwin [
     "--disable-toolbox-glue"
   ];
 
-  postConfigure = if stdenv.isCygwin then ''
+  postConfigure = if hostPlatform.isCygwin then ''
     sed -i Makefile -e 's,PYTHONPATH="$(srcdir),PYTHONPATH="$(abs_srcdir),'
   '' else null;
 
   buildInputs =
     optional (stdenv ? cc && stdenv.cc.libc != null) stdenv.cc.libc ++
     [ bzip2 openssl zlib ]
-    ++ optionals stdenv.isCygwin [ expat libffi ]
+    ++ optional (hostPlatform.isCygwin || hostPlatform.isAarch64) libffi
+    ++ optional hostPlatform.isCygwin expat
     ++ [ db gdbm ncurses sqlite readline ]
     ++ optionals x11Support [ tcl tk xlibsWrapper libX11 ]
-    ++ optionals stdenv.isDarwin [ CF configd ];
+    ++ optionals stdenv.isDarwin ([ CF ] ++ optional (configd != null) configd);
 
   mkPaths = paths: {
     C_INCLUDE_PATH = makeSearchPathOutput "dev" "include" paths;
@@ -154,14 +153,20 @@ in stdenv.mkDerivation {
     NIX_CFLAGS_COMPILE = optionalString stdenv.isDarwin "-msse2";
     DETERMINISTIC_BUILD = 1;
 
-    setupHook = ./setup-hook.sh;
+    setupHook = python-setup-hook sitePackages;
+
+    postPatch = optionalString (x11Support && (tix != null)) ''
+          substituteInPlace "Lib/lib-tk/Tix.py" --replace "os.environ.get('TIX_LIBRARY')" "os.environ.get('TIX_LIBRARY') or '${tix}/lib'"
+    '';
 
     postInstall =
       ''
         # needed for some packages, especially packages that backport
         # functionality to 2.x from 3.x
         for item in $out/lib/python${majorVersion}/test/*; do
-          if [[ "$item" != */test_support.py* ]]; then
+          if [[ "$item" != */test_support.py*
+             && "$item" != */test/support
+             && "$item" != */test/regrtest.py* ]]; then
             rm -rf "$item"
           else
             echo $item
@@ -178,13 +183,29 @@ in stdenv.mkDerivation {
         echo "manylinux1_compatible=False" >> $out/lib/${libPrefix}/_manylinux.py
 
         rm "$out"/lib/python*/plat-*/regen # refers to glibc.dev
+
+        # Determinism: Windows installers were not deterministic.
+        # We're also not interested in building Windows installers.
+        find "$out" -name 'wininst*.exe' | xargs -r rm -f
+
+        # Determinism: rebuild all bytecode
+        # We exclude lib2to3 because that's Python 2 code which fails
+        # We rebuild three times, once for each optimization level
+        find $out -name "*.py" | $out/bin/python -m compileall -q -f -x "lib2to3" -i -
+        find $out -name "*.py" | $out/bin/python -O -m compileall -q -f -x "lib2to3" -i -
+        find $out -name "*.py" | $out/bin/python -OO -m compileall -q -f -x "lib2to3" -i -
+      '' + optionalString hostPlatform.isCygwin ''
+        cp libpython2.7.dll.a $out/lib
       '';
 
-    passthru = rec {
-      inherit libPrefix sitePackages x11Support hasDistutilsCxxPatch;
+    passthru = let
+      pythonPackages = callPackage ../../../../../top-level/python-packages.nix {python=self; overrides=packageOverrides;};
+    in rec {
+      inherit libPrefix sitePackages x11Support hasDistutilsCxxPatch ucsEncoding;
       executable = libPrefix;
-      buildEnv = callPackage ../../wrapper.nix { python = self; };
-      withPackages = import ../../with-packages.nix { inherit buildEnv; pythonPackages = python27Packages; };
+      buildEnv = callPackage ../../wrapper.nix { python = self; inherit (pythonPackages) requiredPythonModules; };
+      withPackages = import ../../with-packages.nix { inherit buildEnv pythonPackages;};
+      pkgs = pythonPackages;
       isPy2 = true;
       isPy27 = true;
       interpreter = "${self}/bin/${executable}";
@@ -193,7 +214,7 @@ in stdenv.mkDerivation {
     enableParallelBuilding = true;
 
     meta = {
-      homepage = "http://python.org";
+      homepage = http://python.org;
       description = "A high-level dynamically-typed programming language";
       longDescription = ''
         Python is a remarkably powerful dynamic programming language that
@@ -206,6 +227,9 @@ in stdenv.mkDerivation {
       '';
       license = stdenv.lib.licenses.psfl;
       platforms = stdenv.lib.platforms.all;
-      maintainers = with stdenv.lib.maintainers; [ chaoflow domenkozar ];
+      maintainers = with stdenv.lib.maintainers; [ fridh ];
+      # Higher priority than Python 3.x so that `/bin/python` points to `/bin/python2`
+      # in case both 2 and 3 are installed.
+      priority = -100;
     };
   }

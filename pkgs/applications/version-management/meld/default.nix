@@ -1,18 +1,18 @@
-{ stdenv, fetchurl, itstool, python2Packages, intltool, wrapGAppsHook
+{ stdenv, fetchurl, itstool, python3Packages, intltool, wrapGAppsHook
 , libxml2, gobjectIntrospection, gtk3, gnome3, cairo, file
 }:
 
 
 let
-  minor = "3.16";
-  version = "${minor}.2";
-  inherit (python2Packages) python buildPythonApplication pycairo pygobject3;
+  minor = "3.18";
+  version = "${minor}.0";
+  inherit (python3Packages) python buildPythonApplication pycairo pygobject3;
 in buildPythonApplication rec {
   name = "meld-${version}";
 
   src = fetchurl {
     url = "mirror://gnome/sources/meld/${minor}/meld-${version}.tar.xz";
-    sha256 = "2dd3f58b95444bf721e0c912668c29cf8f47a402440b772ea12c4b9a0c94966f";
+    sha256 = "0gi2jzgsrd5q2icyp6wphbn532ddg82nxhfxlffkniy7wnqmi0c4";
   };
 
   buildInputs = [
@@ -40,6 +40,8 @@ in buildPythonApplication rec {
   '';
 
   pythonPath = [ gtk3 ];
+
+  doCheck = false;
 
   meta = with stdenv.lib; {
     description = "Visual diff and merge tool";

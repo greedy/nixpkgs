@@ -1,17 +1,17 @@
-{ stdenv, lib, fetchFromGitHub, go, pkgs }:
+{ stdenv, lib, fetchFromGitHub, go, procps, removeReferencesTo }:
 
 stdenv.mkDerivation rec {
-  version = "0.14.11";
+  version = "0.14.44";
   name = "syncthing-${version}";
 
   src = fetchFromGitHub {
     owner  = "syncthing";
     repo   = "syncthing";
     rev    = "v${version}";
-    sha256 = "12b8284mya5z1q7ighbzk8rqxj0kcv5n0l39dygikfcbl1krr6sg";
+    sha256 = "1gdkx6lbzmdz2hqc9slbq41rwgkxmdisnj0iywx4mppmc2b4v6wh";
   };
 
-  buildInputs = [ go ];
+  buildInputs = [ go removeReferencesTo ];
 
   buildPhase = ''
     mkdir -p src/github.com/syncthing
@@ -21,32 +21,37 @@ stdenv.mkDerivation rec {
     # Syncthing's build.go script expects this working directory
     cd src/github.com/syncthing/syncthing
 
-    go run build.go -no-upgrade -version v${version} install all
+    go run build.go -no-upgrade -version v${version} build
   '';
 
   installPhase = ''
-    mkdir -p $out/bin $out/etc/systemd/{system,user}
+    mkdir -p $out/lib/systemd/{system,user}
 
-    cp bin/* $out/bin
+    install -Dm755 syncthing $out/bin/syncthing
+
   '' + lib.optionalString (stdenv.isLinux) ''
     substitute etc/linux-systemd/system/syncthing-resume.service \
-               $out/etc/systemd/system/syncthing-resume.service \
-               --replace /usr/bin/pkill ${pkgs.procps}/bin/pkill
+               $out/lib/systemd/system/syncthing-resume.service \
+               --replace /usr/bin/pkill ${procps}/bin/pkill
 
     substitute etc/linux-systemd/system/syncthing@.service \
-               $out/etc/systemd/system/syncthing@.service \
+               $out/lib/systemd/system/syncthing@.service \
                --replace /usr/bin/syncthing $out/bin/syncthing
 
     substitute etc/linux-systemd/user/syncthing.service \
-               $out/etc/systemd/user/syncthing.service \
+               $out/lib/systemd/user/syncthing.service \
                --replace /usr/bin/syncthing $out/bin/syncthing
+  '';
+
+  preFixup = ''
+    find $out/bin -type f -exec remove-references-to -t ${go} '{}' '+'
   '';
 
   meta = with stdenv.lib; {
     homepage = https://www.syncthing.net/;
     description = "Open Source Continuous File Synchronization";
-    license = stdenv.lib.licenses.mpl20;
-    maintainers = with stdenv.lib.maintainers; [ pshendry joko peterhoeg ];
-    platforms = stdenv.lib.platforms.unix;
+    license = licenses.mpl20;
+    maintainers = with maintainers; [ pshendry joko peterhoeg ];
+    platforms = platforms.unix;
   };
 }

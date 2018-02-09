@@ -1,7 +1,8 @@
-{ stdenv, fetchurl, pkgconfig, systemd, libudev, utillinux, coreutils, libuuid, enable_dmeventd ? false }:
+{ stdenv, fetchurl, pkgconfig, systemd, libudev, utillinux, coreutils, libuuid
+, thin-provisioning-tools, enable_dmeventd ? false }:
 
 let
-  version = "2.02.140";
+  version = "2.02.177";
 in
 
 stdenv.mkDerivation {
@@ -9,7 +10,7 @@ stdenv.mkDerivation {
 
   src = fetchurl {
     url = "ftp://sources.redhat.com/pub/lvm2/releases/LVM2.${version}.tgz";
-    sha256 = "1jd46diyv7074fw8kxwq7imn4pl76g01d8y7z4scq0lkxf8jmpai";
+    sha256 = "1wl0isn0yz5wvglwylnlqkppafwmvhliq5bd92vjqp5ir4za49a0";
   };
 
   configureFlags = [
@@ -19,18 +20,19 @@ stdenv.mkDerivation {
     "--enable-pkgconfig"
     "--enable-applib"
     "--enable-cmdlib"
-  ] ++ stdenv.lib.optional enable_dmeventd " --enable-dmeventd";
+  ] ++ stdenv.lib.optional enable_dmeventd " --enable-dmeventd"
+  ++ stdenv.lib.optionals (stdenv.hostPlatform != stdenv.buildPlatform) [
+    "ac_cv_func_malloc_0_nonnull=yes"
+    "ac_cv_func_realloc_0_nonnull=yes"
+  ];
 
   nativeBuildInputs = [ pkgconfig ];
-  buildInputs = [ libudev libuuid ];
+  buildInputs = [ libudev libuuid thin-provisioning-tools ];
 
   preConfigure =
     ''
-      substituteInPlace scripts/lvmdump.sh \
-        --replace /usr/bin/tr ${coreutils}/bin/tr
       substituteInPlace scripts/lvm2_activation_generator_systemd_red_hat.c \
-        --replace /usr/sbin/lvm $out/sbin/lvm \
-        --replace /usr/bin/udevadm ${systemd.udev.bin}/bin/udevadm
+        --replace /usr/bin/udevadm ${systemd}/bin/udevadm
 
       sed -i /DEFAULT_SYS_DIR/d Makefile.in
       sed -i /DEFAULT_PROFILE_DIR/d conf/Makefile.in
@@ -59,7 +61,7 @@ stdenv.mkDerivation {
 
   meta = {
     homepage = http://sourceware.org/lvm2/;
-    descriptions = "Tools to support Logical Volume Management (LVM) on Linux";
+    description = "Tools to support Logical Volume Management (LVM) on Linux";
     platforms = stdenv.lib.platforms.linux;
     maintainers = with stdenv.lib.maintainers; [raskin];
     inherit version;

@@ -13,13 +13,17 @@ stdenv.mkDerivation rec {
 
   propagatedBuildInputs = [ nspr ];
 
-  buildInputs = [ pkgconfig perl python2 zip libffi readline ];
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [ perl python2 zip libffi readline ];
 
   postUnpack = "sourceRoot=\${sourceRoot}/js/src";
 
   postPatch = ''
     # Fixes an issue with version detection under perl 5.22.x
     sed -i 's/(defined\((@TEMPLATE_FILE)\))/\1/' config/milestone.pl
+  '' + stdenv.lib.optionalString stdenv.isAarch64 ''
+    patch -p1 -d ../.. < ${./aarch64-double-conversion.patch}
+    patch -p1 -d ../.. < ${./aarch64-48bit-va-fix.patch}
   '';
 
   preConfigure = ''

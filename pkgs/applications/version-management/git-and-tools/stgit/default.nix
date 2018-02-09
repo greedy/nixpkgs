@@ -1,4 +1,4 @@
-{ stdenv, fetchurl, python, git }:
+{ stdenv, fetchurl, python2, git }:
 
 let
   name = "stgit-0.17.1";
@@ -11,7 +11,7 @@ stdenv.mkDerivation {
     sha256 = "1pka0ns9x0kabn036zsf0mwmwiynckhnva51kgxsch9fqah6acyl";
   };
 
-  buildInputs = [ python git ];
+  buildInputs = [ python2 git ];
 
   makeFlags = "prefix=$$out";
 
@@ -24,7 +24,7 @@ stdenv.mkDerivation {
   checkTarget = "test";
 
   meta = {
-    homepage = "http://procode.org/stgit/";
+    homepage = http://procode.org/stgit/;
     description = "A patch manager implemented on top of Git";
     license = "GPL";
 

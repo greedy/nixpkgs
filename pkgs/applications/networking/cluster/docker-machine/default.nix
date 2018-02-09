@@ -3,7 +3,7 @@
 
 buildGoPackage rec {
   name = "machine-${version}";
-  version = "0.8.1";
+  version = "0.13.0";
 
   goPackagePath = "github.com/docker/machine";
 
@@ -11,8 +11,13 @@ buildGoPackage rec {
     rev = "v${version}";
     owner = "docker";
     repo = "machine";
-    sha256 = "0l4a5bqfw8i8wrl5yzkqy848r7vdx6hw8p5m3z3vzabvsmsjjwy7";
+    sha256 = "1bqblgz2avrvp9xv6rlvgl0xh2ghpml3a00xhq3mmzkznayw6chq";
   };
+
+  postInstall = ''
+    mkdir -p $bin/share/bash-completion/completions/
+    cp go/src/github.com/docker/machine/contrib/completion/bash/* $bin/share/bash-completion/completions/
+  '';
 
   postFixup =  ''
     mv $bin/bin/cmd $bin/bin/docker-machine

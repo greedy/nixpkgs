@@ -26,7 +26,6 @@ let
      cloner false config.nesting.children
   ++ cloner true config.nesting.clone;
 
-
   systemBuilder =
     let
       kernelPath = "${config.boot.kernelPackages.kernel}/" +
@@ -45,10 +44,15 @@ let
 
         ln -s ${kernelPath} $out/kernel
         ln -s ${config.system.modulesTree} $out/kernel-modules
+        ${optionalString (pkgs.stdenv.platform.kernelDTB or false) ''
+          ln -s ${config.boot.kernelPackages.kernel}/dtbs $out/dtbs
+        ''}
 
         echo -n "$kernelParams" > $out/kernel-params
 
         ln -s ${config.system.build.initialRamdisk}/initrd $out/initrd
+
+        ln -s ${config.system.build.initialRamdiskSecretAppender}/bin/append-initrd-secrets $out
 
         ln -s ${config.hardware.firmware}/lib/firmware $out/firmware
       ''}
@@ -78,6 +82,7 @@ let
       done
 
       mkdir $out/bin
+      export localeArchive="${config.i18n.glibcLocales}/lib/locale/locale-archive"
       substituteAll ${./switch-to-configuration.pl} $out/bin/switch-to-configuration
       chmod +x $out/bin/switch-to-configuration
 
@@ -136,6 +141,7 @@ in
     system.build = mkOption {
       internal = true;
       default = {};
+      type = types.attrs;
       description = ''
         Attribute set of derivations used to setup the system.
       '';

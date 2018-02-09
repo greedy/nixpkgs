@@ -1,28 +1,51 @@
 { stdenv, fetchurl, libelf }:
 
-stdenv.mkDerivation rec {
-  name = "libdwarf-20161021";
-
+let
+  version = "20170709";
   src = fetchurl {
-    url = "http://www.prevanders.net/${name}.tar.gz";
-    sha512 = "733523fd5c58f878d65949c1812b2f46b40c4cc3177bc780c703ec71f83675d4b84e81bc1bcca42adf69b5e122562e4ce8e9a8743af29cc6fafe78ed9f8213fd";
+    url = "http://www.prevanders.net/libdwarf-${version}.tar.gz";
+    sha512 = "afff6716ef1af5d8aae2b887f36b9a6547fb576770bc6f630b82725ed1e59cbd"
+           + "387779aa729bbd1a5ae026a25ac76aacf64b038cd898b2419a8676f9aa8c59f1";
+  };
+  meta = {
+    homepage = https://www.prevanders.net/dwarf.html;
+    platforms = stdenv.lib.platforms.linux;
   };
 
-  configureFlags = " --enable-shared --disable-nonshared";
+in rec {
+  libdwarf = stdenv.mkDerivation rec {
+    name = "libdwarf-${version}";
 
-  preConfigure = ''
-    cd libdwarf
-  '';
-  buildInputs = [ libelf ];
+    configureFlags = [ "--enable-shared" "--disable-nonshared" ];
 
-  installPhase = ''
-    mkdir -p $out/lib $out/include
-    cp libdwarf.so $out/lib
-    cp libdwarf.h dwarf.h $out/include
-  '';
+    preConfigure = ''
+      cd libdwarf
+    '';
+    buildInputs = [ libelf ];
 
-  meta = {
-    homepage = http://reality.sgiweb.org/davea/dwarf.html;
-    platforms = stdenv.lib.platforms.linux;
+    installPhase = ''
+      mkdir -p $out/lib $out/include
+      cp libdwarf.so.1 $out/lib
+      ln -s libdwarf.so.1 $out/lib/libdwarf.so
+      cp libdwarf.h dwarf.h $out/include
+    '';
+
+    inherit meta src;
+  };
+
+  dwarfdump = stdenv.mkDerivation rec {
+    name = "dwarfdump-${version}";
+
+    preConfigure = ''
+      cd dwarfdump
+    '';
+
+    buildInputs = [ libelf libdwarf ];
+
+    installPhase = ''
+      install -m755 -D dwarfdump $out/bin/dwarfdump
+    '';
+
+    inherit meta src;
   };
 }

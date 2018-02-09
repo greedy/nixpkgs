@@ -1,12 +1,12 @@
-{ stdenv, fetchurl, gettext }:
+{ stdenv, buildPackages, fetchurl, gettext }:
 
 stdenv.mkDerivation rec {
   name = "libgpg-error-${version}";
-  version = "1.24";
+  version = "1.27";
 
   src = fetchurl {
     url = "mirror://gnupg/libgpg-error/${name}.tar.bz2";
-    sha256 = "0h75sf1ngr750c3fjfn4583q7wz40qm63jhg8vjfdrbx936f2s4j";
+    sha256 = "1li95ni122fzinzlmxbln63nmgij63irxfvi52ws4zfbzv3am4sg";
   };
 
   postPatch = "sed '/BUILD_TIMESTAMP=/s/=.*/=1970-01-01T00:01+0000/' -i ./configure";
@@ -16,7 +16,8 @@ stdenv.mkDerivation rec {
 
   # If architecture-dependent MO files aren't available, they're generated
   # during build, so we need gettext for cross-builds.
-  crossAttrs.buildInputs = [ gettext ];
+  depsBuildBuild = [ buildPackages.stdenv.cc ];
+  nativeBuildInputs = [ gettext ];
 
   postConfigure =
     stdenv.lib.optionalString stdenv.isSunOS
@@ -27,10 +28,10 @@ stdenv.mkDerivation rec {
     # Thus, re-run it with Bash.
       "${stdenv.shell} config.status";
 
-  doCheck = true;
+  doCheck = true; # not cross
 
   meta = with stdenv.lib; {
-    homepage = "https://www.gnupg.org/related_software/libgpg-error/index.html";
+    homepage = https://www.gnupg.org/related_software/libgpg-error/index.html;
     description = "A small library that defines common error values for all GnuPG components";
 
     longDescription = ''
@@ -45,4 +46,3 @@ stdenv.mkDerivation rec {
     maintainers = [ maintainers.fuuzetsu maintainers.vrthra ];
   };
 }
-

@@ -6,12 +6,12 @@
 stdenv.mkDerivation rec {
   name = "${pname}-${version}";
   pname = "gthumb";
-  version = "${major}.4";
-  major = "3.4";
+  version = "${major}.0";
+  major = "3.6";
 
   src = fetchurl {
     url = "mirror://gnome/sources/${pname}/${major}/${name}.tar.xz";
-    sha256 = "154bdc8c1940209f1e3d9c60184efef45b0d24f5f7f7f59b819e9c08e19c2981";
+    sha256 = "1zc7myvnzgq7dawjg03rqvwfad7p938m20f25sfhv65jsfq8n928";
   };
 
   nativeBuildInputs = [ pkgconfig wrapGAppsHook ];

@@ -1,33 +1,33 @@
-{ stdenv, fetchurl, cmake, gettext, pkgconfig, extra-cmake-modules, makeQtWrapper
-, boost, subversion, apr, aprutil
+{ stdenv, fetchurl, cmake, gettext, pkgconfig, extra-cmake-modules
+, boost, subversion, apr, aprutil, kwindowsystem
 , qtscript, qtwebkit, grantlee, karchive, kconfig, kcoreaddons, kguiaddons, kiconthemes, ki18n
 , kitemmodels, kitemviews, kio, kparts, sonnet, kcmutils, knewstuff, knotifications
 , knotifyconfig, ktexteditor, threadweaver, kdeclarative, libkomparediff2 }:
 
 let
   pname = "kdevplatform";
-  version = "5.0.2";
-  dirVersion = "5.0.2";
+  version = "5.1.2";
 
 in
 stdenv.mkDerivation rec {
   name = "${pname}-${version}";
-  
+
   src = fetchurl {
-    url = "mirror://kde/stable/kdevelop/${dirVersion}/src/${name}.tar.xz";
-    sha256 = "a7f311198bb72f5fee064d99055e8df39ecf4e9066fe5c0ff901ee8c24d960ec";
+    url = "mirror://kde/stable/kdevelop/${version}/src/${name}.tar.xz";
+    sha256 = "e622ddad552a678baaf1166d5cbdc5fd1192d2324300c52ef2d25f1c6778664a";
   };
 
-  nativeBuildInputs = [ cmake gettext pkgconfig extra-cmake-modules makeQtWrapper ];
+  nativeBuildInputs = [ cmake gettext pkgconfig extra-cmake-modules ];
 
-  propagatedBuildInputs = [ ];
   buildInputs = [
-    boost subversion apr aprutil
+    boost subversion apr aprutil kwindowsystem
     qtscript qtwebkit grantlee karchive kconfig kcoreaddons kguiaddons kiconthemes
     ki18n kitemmodels kitemviews kio kparts sonnet kcmutils knewstuff
     knotifications knotifyconfig ktexteditor threadweaver kdeclarative
     libkomparediff2
   ];
+
+  enableParallelBuilding = true;
 
   meta = with stdenv.lib; {
     maintainers = [ maintainers.ambrop72 ];

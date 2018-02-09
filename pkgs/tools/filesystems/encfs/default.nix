@@ -5,10 +5,10 @@
 
 stdenv.mkDerivation rec {
   name = "encfs-${version}";
-  version = "1.9.1";
+  version = "1.9.2";
 
   src = fetchFromGitHub {
-    sha256 = "1pyldd802db987m13jfmy491mp8mnsv2mwki0ra4wbnngbqgalhv";
+    sha256 = "0isx7n4r8znk02464s0wvlzk6ry5mlnq3kgnd0rapnhjwdvwqr5y";
     rev = "v${version}";
     repo = "encfs";
     owner = "vgough";
@@ -29,7 +29,6 @@ stdenv.mkDerivation rec {
     description = "An encrypted filesystem in user-space via FUSE";
     homepage = https://vgough.github.io/encfs;
     license = with licenses; [ gpl3 lgpl3 ];
-    maintainers = with maintainers; [ nckx ];
     platforms = with platforms; linux;
   };
 }

@@ -15,23 +15,27 @@ stdenv.mkDerivation {
   name = "broadcom-sta-${version}-${kernel.version}";
 
   src = fetchurl {
-    url = "http://www.broadcom.com/docs/linux_sta/${tarball}";
-    sha256 = hashes."${stdenv.system}";
+    url = "https://docs.broadcom.com/docs-and-downloads/docs/linux_sta/${tarball}";
+    sha256 = hashes.${stdenv.system} or (throw "Unsupported system: ${stdenv.system}");
   };
 
   hardeningDisable = [ "pic" ];
+
+  nativeBuildInputs = kernel.moduleBuildDependencies;
 
   patches = [
     ./i686-build-failure.patch
     ./license.patch
     ./linux-4.7.patch
+    # source: https://git.archlinux.org/svntogit/community.git/tree/trunk/004-linux48.patch?h=packages/broadcom-wl-dkms
+    ./linux-4.8.patch
+    # source: https://aur.archlinux.org/cgit/aur.git/tree/linux411.patch?h=broadcom-wl
+    ./linux-4.11.patch
+    # source: https://aur.archlinux.org/cgit/aur.git/tree/linux412.patch?h=broadcom-wl
+    ./linux-4.12.patch
+    ./linux-4.15.patch
     ./null-pointer-fix.patch
     ./gcc.patch
-    (fetchpatch {
-      name = "linux-4.8.patch";
-      url = "https://aur.archlinux.org/cgit/aur.git/plain/004-linux48.patch?h=broadcom-wl-dkms";
-      sha256 = "1g1gazxx67kxyw242cli6bf62il7ikzmf0w6v14k44j6b4bihcax";
-    })
   ];
 
   makeFlags = "KBASE=${kernel.dev}/lib/modules/${kernel.modDirVersion}";

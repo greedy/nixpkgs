@@ -12,15 +12,16 @@ let
   inherit (pythonPackages) pexpect pycrypto python paramiko;
 in stdenv.mkDerivation rec {
   pname = "mysql-workbench";
-  version = "6.3.7";
+  version = "6.3.8";
   name = "${pname}-${version}";
 
   src = fetchurl {
     url = "http://dev.mysql.com/get/Downloads/MySQLGUITools/mysql-workbench-community-${version}-src.tar.gz";
-    sha256 = "1v4k04facdn2qzflf0clf3ir5hghqlabq89ssm2s4x1nqdniz544";
+    sha256 = "1bxd828nrawmym6d8awh1vrni8dsbwh1k5am1lrq5ihp5c3kw9ka";
   };
 
-  buildInputs = [ cmake pkgconfig glibc gnome_keyring gtk gtk.dev gtkmm pcre swig python sudo
+  nativeBuildInputs = [ pkgconfig ];
+  buildInputs = [ cmake gnome_keyring gtk gtk.dev gtkmm pcre swig python sudo
     paramiko mysql libxml2 libctemplate libmysqlconnectorcpp vsqlite tinyxml gdal libiodbc file
     libpthreadstubs libXdmcp libuuid libzip libgnome_keyring libgnome_keyring.dev jre autoconf
     automake libtool boost glibmm glibmm.dev libsigcxx pangomm libX11 pexpect pycrypto openssl
